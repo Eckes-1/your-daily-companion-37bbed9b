@@ -1,13 +1,22 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Plus, FileText, Loader2 } from 'lucide-react';
 import { useNotes, Note } from '@/hooks/useNotes';
 import { NoteCard } from './NoteCard';
 import { NoteEditor } from './NoteEditor';
+import { PullIndicator, LoadMoreIndicator } from '@/components/ui/PullToRefresh';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 export function NotesTab() {
-  const { notes, loading, addNote, updateNote, deleteNote } = useNotes();
+  const { notes, loading, addNote, updateNote, deleteNote, refetch } = useNotes();
   const [isEditing, setIsEditing] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+
+  const handleRefresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+  const { containerRef, pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: handleRefresh });
+  const { displayedItems, hasMore, isLoadingMore, loadMoreRef } = useInfiniteScroll({ items: notes, pageSize: 20 });
 
   const handleSave = async (noteData: { id?: string; title: string; content: string }) => {
     if (noteData.id) {
@@ -31,7 +40,9 @@ export function NotesTab() {
   }
 
   return (
-    <div className="pb-20">
+    <div ref={containerRef} className="pb-20 h-full overflow-auto">
+      <PullIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
+      
       {notes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
           <div className="w-16 h-16 rounded-full bg-note flex items-center justify-center mb-4">
@@ -44,7 +55,7 @@ export function NotesTab() {
         </div>
       ) : (
         <div className="px-4 space-y-3">
-          {notes.map((note) => (
+          {displayedItems.map((note) => (
             <NoteCard 
               key={note.id} 
               note={{
@@ -58,6 +69,9 @@ export function NotesTab() {
               onClick={() => handleEdit(note)}
             />
           ))}
+          <div ref={loadMoreRef}>
+            <LoadMoreIndicator isLoading={isLoadingMore} hasMore={hasMore} />
+          </div>
         </div>
       )}
 

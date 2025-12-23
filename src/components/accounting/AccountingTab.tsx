@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Search, X } from 'lucide-react';
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { TransactionCard } from './TransactionCard';
@@ -15,11 +15,14 @@ import { BatchActions } from './BatchActions';
 import { BackupManager } from './BackupManager';
 import { UnifiedToolbarMenu } from './UnifiedToolbarMenu';
 import { PDFExportDialog } from './PDFExportDialog';
+import { PullIndicator, LoadMoreIndicator } from '@/components/ui/PullToRefresh';
 import { Input } from '@/components/ui/input';
 import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useExportData } from '@/hooks/useExportData';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 export function AccountingTab() {
   const { transactions, loading, addTransaction, updateTransaction, deleteTransaction, refetch } = useTransactions();
@@ -67,6 +70,15 @@ export function AccountingTab() {
   }, [transactions, dateRange, searchQuery, selectedTagIds, transactionTagMap]);
 
   const { exporting, exportToCSV, exportToExcel, exportByCategoryExcel, exportByMonthExcel, exportToZip, exportToPDF } = useExportData({ transactions: filteredTransactions });
+
+  // 下拉刷新
+  const handleRefresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+  const { containerRef, pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: handleRefresh });
+
+  // 无限滚动
+  const { displayedItems, hasMore, isLoadingMore, loadMoreRef } = useInfiniteScroll({ items: filteredTransactions, pageSize: 20 });
 
   useEffect(() => {
     const fetchTransactionTags = async () => {
@@ -132,7 +144,9 @@ export function AccountingTab() {
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
-    <div className="pb-20">
+    <div ref={containerRef} className="pb-20 h-full overflow-auto">
+      <PullIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
+      
       <div className="px-4 mb-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -190,7 +204,10 @@ export function AccountingTab() {
       ) : (
         <div className="px-4 space-y-3">
           <h3 className="font-semibold text-foreground mb-3">{dateRange ? `筛选结果 (${filteredTransactions.length}条)` : '最近记录'}</h3>
-          {filteredTransactions.map((transaction) => <TransactionCard key={transaction.id} transaction={{ ...transaction, date: new Date(transaction.date) }} onDelete={deleteTransaction} onEdit={handleEdit} selectionMode={selectionMode} isSelected={selectedIds.includes(transaction.id)} onSelect={toggleSelectTransaction} />)}
+          {displayedItems.map((transaction) => <TransactionCard key={transaction.id} transaction={{ ...transaction, date: new Date(transaction.date) }} onDelete={deleteTransaction} onEdit={handleEdit} selectionMode={selectionMode} isSelected={selectedIds.includes(transaction.id)} onSelect={toggleSelectTransaction} />)}
+          <div ref={loadMoreRef}>
+            <LoadMoreIndicator isLoading={isLoadingMore} hasMore={hasMore} />
+          </div>
         </div>
       )}
 
