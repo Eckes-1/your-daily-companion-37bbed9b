@@ -3,6 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface Transaction {
   id: string;
   type: 'income' | 'expense';
@@ -11,6 +17,7 @@ export interface Transaction {
   description: string;
   date: string;
   image_url?: string;
+  tags?: Tag[];
 }
 
 export function useTransactions() {
@@ -65,6 +72,17 @@ export function useTransactions() {
         .single();
 
       if (error) throw error;
+      
+      // Save tags if provided
+      if (data.tags && data.tags.length > 0 && newData) {
+        for (const tag of data.tags) {
+          await supabase
+            .from('transaction_tags')
+            .insert({ transaction_id: newData.id, tag_id: tag.id })
+            .select();
+        }
+      }
+      
       setTransactions([{
         ...newData,
         type: newData.type as 'income' | 'expense',
