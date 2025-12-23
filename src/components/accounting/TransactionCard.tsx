@@ -1,11 +1,12 @@
-import { Trash2, Edit2, Image, Check } from 'lucide-react';
+import { Trash2, Edit2, Image, Check, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useTags, Tag } from '@/hooks/useTags';
 import { Checkbox } from '@/components/ui/checkbox';
-
+import { ShareTransaction } from './ShareTransaction';
+import { Transaction } from '@/hooks/useTransactions';
 interface TransactionDisplay {
   id: string;
   type: 'income' | 'expense';
@@ -45,6 +46,7 @@ export function TransactionCard({
   onSelect
 }: TransactionCardProps) {
   const [showImage, setShowImage] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
   const { getTransactionTags } = useTags();
 
@@ -132,6 +134,15 @@ export function TransactionCard({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    setShowShare(true);
+                  }}
+                  className="p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onEdit(transaction.id);
                   }}
                   className="p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100"
@@ -160,6 +171,21 @@ export function TransactionCard({
           onClose={() => setShowImage(false)} 
         />
       )}
+
+      {/* Share Dialog */}
+      <ShareTransaction
+        transaction={{
+          id: transaction.id,
+          type: transaction.type,
+          amount: transaction.amount,
+          category: transaction.category,
+          description: transaction.description,
+          date: transaction.date.toISOString(),
+          image_url: transaction.image_url,
+        }}
+        isOpen={showShare}
+        onClose={() => setShowShare(false)}
+      />
     </>
   );
 }

@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Tag, Bell, PieChart, Search, X, CheckSquare, Database } from 'lucide-react';
+import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Search, X, CheckSquare } from 'lucide-react';
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { useTags } from '@/hooks/useTags';
 import { TransactionCard } from './TransactionCard';
 import { AddTransaction } from './AddTransaction';
 import { AccountingCharts } from './AccountingCharts';
+import { TrendAnalysis } from './TrendAnalysis';
 import { ExportData } from './ExportData';
 import { ImportData } from './ImportData';
 import { BudgetManager } from './BudgetManager';
@@ -15,6 +16,7 @@ import { StatisticsReport } from './StatisticsReport';
 import { TagFilter } from './TagFilter';
 import { BatchActions } from './BatchActions';
 import { BackupManager } from './BackupManager';
+import { ToolbarMenu } from './ToolbarMenu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
@@ -246,54 +248,24 @@ export function AccountingTab() {
             onTagsChange={setSelectedTagIds}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <Button
             variant={selectionMode ? "default" : "outline"}
             size="sm"
             onClick={toggleSelectMode}
-            className="gap-1"
+            className="gap-1 h-8"
           >
             <CheckSquare className="w-4 h-4" />
             <span className="hidden sm:inline">批量</span>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowCategoryManager(true)}
-            className="gap-1"
-          >
-            <Tag className="w-4 h-4" />
-            <span className="hidden sm:inline">分类</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowReminderSettings(true)}
-            className="gap-1"
-          >
-            <Bell className="w-4 h-4" />
-            <span className="hidden sm:inline">提醒</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowStatistics(true)}
-            className="gap-1"
-          >
-            <PieChart className="w-4 h-4" />
-            <span className="hidden sm:inline">报表</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowBackupManager(true)}
-            className="gap-1"
-          >
-            <Database className="w-4 h-4" />
-            <span className="hidden sm:inline">备份</span>
-          </Button>
           <ImportData onImportComplete={refetch} />
           <ExportData transactions={filteredTransactions} />
+          <ToolbarMenu
+            onOpenCategoryManager={() => setShowCategoryManager(true)}
+            onOpenReminderSettings={() => setShowReminderSettings(true)}
+            onOpenStatistics={() => setShowStatistics(true)}
+            onOpenBackupManager={() => setShowBackupManager(true)}
+          />
         </div>
       </div>
 
@@ -342,6 +314,13 @@ export function AccountingTab() {
           </button>
         )}
       </div>
+
+      {/* 趋势分析图表 */}
+      {showCharts && (
+        <div className="px-4 mb-4">
+          <TrendAnalysis transactions={filteredTransactions} />
+        </div>
+      )}
 
       {/* 统计图表 */}
       {showCharts && <AccountingCharts transactions={filteredTransactions} />}
