@@ -177,88 +177,77 @@ export function BatchActions({
 
   return (
     <>
-      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 bg-primary text-primary-foreground rounded-full shadow-lg px-4 py-3 flex items-center gap-3 animate-fade-in">
-        {/* 全选 / 反选 */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
-          onClick={onSelectAll}
-        >
-          <CheckCheck className="w-4 h-4" />
-          <span className="hidden sm:inline">全选</span>
-        </Button>
+      {/* Compact floating action bar */}
+      <div className="fixed bottom-24 left-4 right-4 z-40 animate-slide-up">
+        <div className="bg-card border border-border rounded-2xl shadow-elevated p-3">
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-foreground">
+                已选 <span className="text-primary font-bold">{selectedIds.length}</span> 项
+              </span>
+              <span className="text-xs text-muted-foreground">/ {filteredCount}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={onSelectAll}
+                className="text-xs text-primary hover:text-primary/80 px-2 py-1 rounded-md hover:bg-primary/10 transition-colors"
+              >
+                全选
+              </button>
+              <button
+                onClick={onInvertSelect}
+                className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted transition-colors"
+              >
+                反选
+              </button>
+              <button
+                onClick={onClearSelection}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors ml-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowCategoryDialog(true)}
+              disabled={selectedIds.length === 0}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              <FolderEdit className="w-4 h-4" />
+              分类
+            </button>
+            
+            <button
+              onClick={() => setShowTagDialog(true)}
+              disabled={selectedIds.length === 0}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              <Tag className="w-4 h-4" />
+              标签
+            </button>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
-          onClick={onInvertSelect}
-        >
-          <ToggleLeft className="w-4 h-4" />
-          <span className="hidden sm:inline">反选</span>
-        </Button>
-
-        <div className="h-4 w-px bg-primary-foreground/30" />
-
-        <span className="text-sm font-medium">{selectedIds.length}/{filteredCount}</span>
-        
-        <div className="h-4 w-px bg-primary-foreground/30" />
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
-          onClick={() => setShowCategoryDialog(true)}
-          disabled={selectedIds.length === 0}
-        >
-          <FolderEdit className="w-4 h-4" />
-          <span className="hidden sm:inline">分类</span>
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
-          onClick={() => setShowTagDialog(true)}
-          disabled={selectedIds.length === 0}
-        >
-          <Tag className="w-4 h-4" />
-          <span className="hidden sm:inline">标签</span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
-          onClick={() => setShowDateDialog(true)}
-          disabled={selectedIds.length === 0}
-        >
-          <CalendarDays className="w-4 h-4" />
-          <span className="hidden sm:inline">日期</span>
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
-          onClick={() => setShowDeleteConfirm(true)}
-          disabled={selectedIds.length === 0}
-        >
-          <Trash2 className="w-4 h-4" />
-          <span className="hidden sm:inline">删除</span>
-        </Button>
-        
-        <div className="h-4 w-px bg-primary-foreground/30" />
-        
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-primary-foreground hover:bg-primary-foreground/20 w-8 h-8"
-          onClick={onClearSelection}
-        >
-          <X className="w-4 h-4" />
-        </Button>
+            <button
+              onClick={() => setShowDateDialog(true)}
+              disabled={selectedIds.length === 0}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              <CalendarDays className="w-4 h-4" />
+              日期
+            </button>
+            
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={selectedIds.length === 0}
+              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Delete Confirmation */}
