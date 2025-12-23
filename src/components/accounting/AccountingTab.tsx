@@ -254,17 +254,6 @@ export function AccountingTab() {
             <CheckSquare className="w-4 h-4" />
             <span className="hidden sm:inline">批量</span>
           </Button>
-
-          {selectionMode && (
-            <>
-              <Button variant="outline" size="sm" onClick={selectAllFiltered}>
-                全选
-              </Button>
-              <Button variant="outline" size="sm" onClick={invertSelectFiltered}>
-                反选
-              </Button>
-            </>
-          )}
           <Button
             variant="outline"
             size="sm"
@@ -424,12 +413,17 @@ export function AccountingTab() {
       />
 
       {/* 批量操作栏 */}
-      <BatchActions
-        selectedIds={selectedIds}
-        onClearSelection={handleClearSelection}
-        onDelete={handleBatchDelete}
-        onActionComplete={refetch}
-      />
+      {selectionMode && (
+        <BatchActions
+          selectedIds={selectedIds}
+          filteredCount={filteredTransactions.length}
+          onClearSelection={handleClearSelection}
+          onDelete={handleBatchDelete}
+          onActionComplete={refetch}
+          onSelectAll={selectAllFiltered}
+          onInvertSelect={invertSelectFiltered}
+        />
+      )}
     </div>
   );
 }
