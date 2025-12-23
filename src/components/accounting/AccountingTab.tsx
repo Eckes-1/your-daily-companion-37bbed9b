@@ -177,6 +177,7 @@ export function AccountingTab() {
           onExportZip={exportToZip}
           onExportPDF={() => setShowPDFExport(true)}
           exporting={exporting}
+          onShowTutorial={() => setShowOnboarding(true)}
         />
       </div>
 

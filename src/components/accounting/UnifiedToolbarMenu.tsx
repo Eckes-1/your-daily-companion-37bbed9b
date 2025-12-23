@@ -1,4 +1,4 @@
-import { Tag, Bell, PieChart, Database, Upload, Download, CheckSquare, FileText, MoreHorizontal } from 'lucide-react';
+import { Tag, Bell, PieChart, Database, Upload, Download, CheckSquare, FileText, MoreHorizontal, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -29,6 +29,8 @@ interface UnifiedToolbarMenuProps {
   onExportZip: () => void;
   onExportPDF: () => void;
   exporting?: boolean;
+  // Tutorial
+  onShowTutorial: () => void;
 }
 
 export function UnifiedToolbarMenu({
@@ -46,6 +48,7 @@ export function UnifiedToolbarMenu({
   onExportZip,
   onExportPDF,
   exporting,
+  onShowTutorial,
 }: UnifiedToolbarMenuProps) {
   return (
     <DropdownMenu>
@@ -122,6 +125,13 @@ export function UnifiedToolbarMenu({
         <DropdownMenuItem onClick={onOpenBackupManager} className="gap-2">
           <Database className="w-4 h-4" />
           云端备份
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem onClick={onShowTutorial} className="gap-2">
+          <HelpCircle className="w-4 h-4" />
+          查看引导
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
