@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Trash2, Tag, FolderEdit, X } from 'lucide-react';
+import { useState } from 'react';
+import { Trash2, Tag, FolderEdit, X, CheckCheck, ToggleLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,16 +33,22 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 interface BatchActionsProps {
   selectedIds: string[];
+  filteredCount: number;
   onClearSelection: () => void;
   onDelete: () => Promise<void>;
   onActionComplete: () => void;
+  onSelectAll: () => void;
+  onInvertSelect: () => void;
 }
 
 export function BatchActions({ 
-  selectedIds, 
+  selectedIds,
+  filteredCount,
   onClearSelection, 
   onDelete,
-  onActionComplete 
+  onActionComplete,
+  onSelectAll,
+  onInvertSelect,
 }: BatchActionsProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
@@ -138,12 +144,33 @@ export function BatchActions({
     );
   };
 
-  if (selectedIds.length === 0) return null;
-
   return (
     <>
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 bg-primary text-primary-foreground rounded-full shadow-lg px-4 py-3 flex items-center gap-3 animate-fade-in">
-        <span className="text-sm font-medium">已选 {selectedIds.length} 项</span>
+        {/* 全选 / 反选 */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
+          onClick={onSelectAll}
+        >
+          <CheckCheck className="w-4 h-4" />
+          <span className="hidden sm:inline">全选</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
+          onClick={onInvertSelect}
+        >
+          <ToggleLeft className="w-4 h-4" />
+          <span className="hidden sm:inline">反选</span>
+        </Button>
+
+        <div className="h-4 w-px bg-primary-foreground/30" />
+
+        <span className="text-sm font-medium">{selectedIds.length}/{filteredCount}</span>
         
         <div className="h-4 w-px bg-primary-foreground/30" />
         
@@ -152,6 +179,7 @@ export function BatchActions({
           size="sm"
           className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
           onClick={() => setShowCategoryDialog(true)}
+          disabled={selectedIds.length === 0}
         >
           <FolderEdit className="w-4 h-4" />
           <span className="hidden sm:inline">分类</span>
@@ -162,6 +190,7 @@ export function BatchActions({
           size="sm"
           className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
           onClick={() => setShowTagDialog(true)}
+          disabled={selectedIds.length === 0}
         >
           <Tag className="w-4 h-4" />
           <span className="hidden sm:inline">标签</span>
@@ -172,6 +201,7 @@ export function BatchActions({
           size="sm"
           className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
           onClick={() => setShowDeleteConfirm(true)}
+          disabled={selectedIds.length === 0}
         >
           <Trash2 className="w-4 h-4" />
           <span className="hidden sm:inline">删除</span>
