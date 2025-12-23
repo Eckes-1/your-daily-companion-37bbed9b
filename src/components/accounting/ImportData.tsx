@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -8,6 +8,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,6 +31,14 @@ interface ImportDataProps {
   onImportComplete: () => void;
 }
 
+// Template data
+const TEMPLATE_DATA = [
+  { '日期': '2024-01-15', '类型': '支出', '金额': 35.5, '分类': '餐饮', '备注': '午餐' },
+  { '日期': '2024-01-15', '类型': '支出', '金额': 200, '分类': '交通', '备注': '打车' },
+  { '日期': '2024-01-16', '类型': '收入', '金额': 8000, '分类': '工资', '备注': '1月工资' },
+  { '日期': '2024-01-17', '类型': '支出', '金额': 66.8, '分类': '购物', '备注': '日用品' },
+];
+
 export function ImportData({ onImportComplete }: ImportDataProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -35,6 +49,43 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Download template functions
+  const downloadCSVTemplate = () => {
+    const headers = ['日期', '类型', '金额', '分类', '备注'];
+    const rows = TEMPLATE_DATA.map(row => 
+      [row['日期'], row['类型'], row['金额'], row['分类'], row['备注']].join(',')
+    );
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = '账单导入模板.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+    
+    toast({ title: '模板下载成功', description: 'CSV模板已下载' });
+  };
+
+  const downloadExcelTemplate = () => {
+    const worksheet = XLSX.utils.json_to_sheet(TEMPLATE_DATA);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '账单数据');
+    
+    // Set column widths
+    worksheet['!cols'] = [
+      { wch: 12 }, // 日期
+      { wch: 8 },  // 类型
+      { wch: 10 }, // 金额
+      { wch: 10 }, // 分类
+      { wch: 20 }, // 备注
+    ];
+    
+    XLSX.writeFile(workbook, '账单导入模板.xlsx');
+    
+    toast({ title: '模板下载成功', description: 'Excel模板已下载' });
+  };
 
   const parseCSVLine = (line: string): string[] => {
     const result: string[] = [];
@@ -71,6 +122,13 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
         }
       } catch {
         // Fall through to string parsing
+      }
+    }
+    
+    // Handle Date object
+    if (value instanceof Date) {
+      if (!isNaN(value.getTime())) {
+        return value.toISOString().split('T')[0];
       }
     }
     
@@ -170,7 +228,7 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
     const worksheet = workbook.Sheets[firstSheetName];
     
     // Get data as JSON with headers
-    const data = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { raw: true, defval: '' });
+    const data = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { raw: false, defval: '' });
     
     if (data.length === 0) throw new Error('Excel 文件为空');
     
@@ -209,22 +267,21 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
         const content = await file.text();
         transactions = parseCSV(content);
       } else {
-        // Parse Excel files
+        // Parse Excel files (.xls, .xlsx)
         const buffer = await file.arrayBuffer();
         transactions = parseExcel(buffer);
       }
       
       if (transactions.length === 0) {
-        throw new Error('未能解析出有效的账单记录，请检查文件格式');
+        throw new Error('未能解析出有效的账单记录，请检查文件格式是否正确');
       }
       
       setPreview(transactions);
     } catch (err) {
       console.error('Parse error:', err);
-      setError(err instanceof Error ? err.message : '文件解析失败');
+      setError(err instanceof Error ? err.message : '文件解析失败，请确保文件格式正确');
     } finally {
       setParsing(false);
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -310,7 +367,7 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv,.xls,.xlsx"
+                accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 onChange={handleFileSelect}
                 className="hidden"
               />
@@ -331,16 +388,41 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
               )}
             </div>
 
+            {/* Download Template */}
+            <div className="flex items-center justify-between bg-muted p-3 rounded-lg">
+              <div className="text-sm">
+                <p className="font-medium text-foreground">下载导入模板</p>
+                <p className="text-xs text-muted-foreground">使用模板确保格式正确</p>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1">
+                    <Download className="w-4 h-4" />
+                    下载模板
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={downloadCSVTemplate}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    CSV 格式 (.csv)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={downloadExcelTemplate}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    Excel 格式 (.xlsx)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
             {/* Format Guide */}
-            <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
-              <p className="font-medium mb-1">CSV 文件格式要求：</p>
-              <p>第一行为表头，需包含以下列：</p>
-              <ul className="list-disc list-inside mt-1 space-y-0.5">
-                <li>类型/type：收入 或 支出</li>
-                <li>金额/amount：数字金额</li>
-                <li>分类/category：分类名称</li>
-                <li>备注/description：备注说明（可选）</li>
-                <li>日期/date：日期（可选）</li>
+            <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+              <p className="font-medium mb-1">文件格式要求：</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>日期：2024-01-15 格式</li>
+                <li>类型：收入 或 支出</li>
+                <li>金额：数字金额</li>
+                <li>分类：分类名称</li>
+                <li>备注：可选</li>
               </ul>
             </div>
 
