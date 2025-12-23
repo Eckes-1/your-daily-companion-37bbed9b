@@ -1,42 +1,34 @@
 import { useState } from 'react';
-import { Plus, FileText } from 'lucide-react';
-import { Note } from '@/types';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { Plus, FileText, Loader2 } from 'lucide-react';
+import { useNotes, Note } from '@/hooks/useNotes';
 import { NoteCard } from './NoteCard';
 import { NoteEditor } from './NoteEditor';
 
 export function NotesTab() {
-  const [notes, setNotes] = useLocalStorage<Note[]>('notes', []);
+  const { notes, loading, addNote, updateNote, deleteNote } = useNotes();
   const [isEditing, setIsEditing] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
 
-  const handleSave = (noteData: Partial<Note>) => {
+  const handleSave = async (noteData: { id?: string; title: string; content: string }) => {
     if (noteData.id) {
-      setNotes(notes.map(n => 
-        n.id === noteData.id 
-          ? { ...n, ...noteData, updatedAt: new Date() }
-          : n
-      ));
+      await updateNote(noteData.id, noteData.title, noteData.content);
     } else {
-      const newNote: Note = {
-        id: crypto.randomUUID(),
-        title: noteData.title || '',
-        content: noteData.content || '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setNotes([newNote, ...notes]);
+      await addNote(noteData.title, noteData.content);
     }
-  };
-
-  const handleDelete = (id: string) => {
-    setNotes(notes.filter(n => n.id !== id));
   };
 
   const handleEdit = (note: Note) => {
     setEditingNote(note);
     setIsEditing(true);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="pb-20">
@@ -55,9 +47,15 @@ export function NotesTab() {
           {notes.map((note) => (
             <NoteCard 
               key={note.id} 
-              note={note} 
-              onDelete={handleDelete}
-              onClick={handleEdit}
+              note={{
+                id: note.id,
+                title: note.title,
+                content: note.content || '',
+                createdAt: new Date(note.created_at),
+                updatedAt: new Date(note.updated_at),
+              }} 
+              onDelete={deleteNote}
+              onClick={() => handleEdit(note)}
             />
           ))}
         </div>
@@ -75,7 +73,13 @@ export function NotesTab() {
 
       {isEditing && (
         <NoteEditor
-          note={editingNote}
+          note={editingNote ? {
+            id: editingNote.id,
+            title: editingNote.title,
+            content: editingNote.content || '',
+            createdAt: new Date(editingNote.created_at),
+            updatedAt: new Date(editingNote.updated_at),
+          } : null}
           onSave={handleSave}
           onClose={() => {
             setIsEditing(false);
