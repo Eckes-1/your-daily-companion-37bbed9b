@@ -74,7 +74,9 @@ export function TransactionCard({
               <Checkbox 
                 checked={isSelected}
                 onCheckedChange={() => onSelect?.(transaction.id)}
+                onClick={(e) => e.stopPropagation()}
                 className="shrink-0"
+                aria-label={isSelected ? "取消选择该账单" : "选择该账单"}
               />
             ) : (
               <span className="text-2xl shrink-0">

@@ -92,6 +92,31 @@ export function AccountingTab() {
     );
   };
 
+  const selectAllFiltered = () => {
+    setSelectedIds(filteredTransactions.map(t => t.id));
+  };
+
+  const invertSelectFiltered = () => {
+    const filteredIdSet = new Set(filteredTransactions.map(t => t.id));
+
+    setSelectedIds(prev => {
+      const prevSet = new Set(prev);
+      const next: string[] = [];
+
+      // 保留不在当前筛选结果中的已选项
+      for (const id of prev) {
+        if (!filteredIdSet.has(id)) next.push(id);
+      }
+
+      // 对当前筛选结果做“反选”
+      for (const t of filteredTransactions) {
+        if (!prevSet.has(t.id)) next.push(t.id);
+      }
+
+      return next;
+    });
+  };
+
   const handleBatchDelete = async () => {
     try {
       const { error } = await supabase
@@ -229,6 +254,17 @@ export function AccountingTab() {
             <CheckSquare className="w-4 h-4" />
             <span className="hidden sm:inline">批量</span>
           </Button>
+
+          {selectionMode && (
+            <>
+              <Button variant="outline" size="sm" onClick={selectAllFiltered}>
+                全选
+              </Button>
+              <Button variant="outline" size="sm" onClick={invertSelectFiltered}>
+                反选
+              </Button>
+            </>
+          )}
           <Button
             variant="outline"
             size="sm"

@@ -282,6 +282,8 @@ export function BatchActions({
                     <Checkbox 
                       checked={selectedTagIds.includes(tag.id)}
                       onCheckedChange={() => toggleTag(tag.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={selectedTagIds.includes(tag.id) ? `取消标签：${tag.name}` : `选择标签：${tag.name}`}
                     />
                     <div
                       className="w-4 h-4 rounded-full"
