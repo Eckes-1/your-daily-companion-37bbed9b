@@ -246,7 +246,21 @@ export function AccountingTab() {
       ) : (
         <div className="px-4 space-y-3">
           <h3 className="font-semibold text-foreground mb-3">{dateRange ? `筛选结果 (${filteredTransactions.length}条)` : '最近记录'}</h3>
-          {displayedItems.map((transaction) => <TransactionCard key={transaction.id} transaction={{ ...transaction, date: new Date(transaction.date) }} onDelete={deleteTransaction} onEdit={handleEdit} selectionMode={selectionMode} isSelected={selectedIds.includes(transaction.id)} onSelect={toggleSelectTransaction} />)}
+          {displayedItems.map((transaction, index) => (
+            <div 
+              key={transaction.id} 
+              style={{ animationDelay: `${Math.min(index * 0.05, 0.3)}s` }}
+            >
+              <TransactionCard 
+                transaction={{ ...transaction, date: new Date(transaction.date) }} 
+                onDelete={deleteTransaction} 
+                onEdit={handleEdit} 
+                selectionMode={selectionMode} 
+                isSelected={selectedIds.includes(transaction.id)} 
+                onSelect={toggleSelectTransaction} 
+              />
+            </div>
+          ))}
           <div ref={loadMoreRef}>
             <LoadMoreIndicator isLoading={isLoadingMore} hasMore={hasMore} />
           </div>
