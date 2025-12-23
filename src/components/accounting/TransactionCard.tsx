@@ -80,8 +80,9 @@ export function TransactionCard({
 
   // 从数据库分类获取图标和颜色
   const categoryData = categories.find(c => c.name === transaction.category);
-  const icon = categoryData?.icon || '📝';
+  const icon = categoryData?.icon || 'package';
   const color = categoryData?.color || '#6b7280';
+  const iconStyle = categoryData?.icon_style || 'outline';
   const gradient = colorToGradient[color] || 'from-gray-400 to-slate-500';
 
   return (
@@ -111,7 +112,7 @@ export function TransactionCard({
               'shadow-md bg-gradient-to-br text-white',
               gradient
             )}>
-              <CategoryIcon icon={icon} size="lg" className="text-white" />
+              <CategoryIcon icon={icon} size="lg" style={iconStyle} className="text-white" />
             </div>
           )}
 

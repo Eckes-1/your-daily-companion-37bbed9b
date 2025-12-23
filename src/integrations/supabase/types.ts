@@ -70,6 +70,7 @@ export type Database = {
           color: string | null
           created_at: string
           icon: string | null
+          icon_style: string | null
           icon_url: string | null
           id: string
           is_default: boolean | null
@@ -81,6 +82,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           icon?: string | null
+          icon_style?: string | null
           icon_url?: string | null
           id?: string
           is_default?: boolean | null
@@ -92,6 +94,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           icon?: string | null
+          icon_style?: string | null
           icon_url?: string | null
           id?: string
           is_default?: boolean | null

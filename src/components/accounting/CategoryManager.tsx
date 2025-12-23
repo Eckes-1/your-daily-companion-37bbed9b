@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Tag, X } from 'lucide-react';
-import { useCategories, Category } from '@/hooks/useCategories';
+import { useCategories, Category, IconStyle } from '@/hooks/useCategories';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,7 +16,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { CategoryIcon, CATEGORY_ICONS } from './CategoryIcon';
+import { CategoryIcon, CATEGORY_ICONS, ICON_STYLES } from './CategoryIcon';
 
 interface CategoryManagerProps {
   isOpen: boolean;
@@ -34,6 +34,7 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
   const [newName, setNewName] = useState('');
   const [newIcon, setNewIcon] = useState('package');
   const [newColor, setNewColor] = useState('#6366f1');
+  const [newIconStyle, setNewIconStyle] = useState<IconStyle>('outline');
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
   const incomeCategories = categories.filter(c => c.type === 'income');
@@ -49,6 +50,7 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
       type: activeTab,
       icon: newIcon,
       color: newColor,
+      icon_style: newIconStyle,
     });
     
     resetForm();
@@ -62,6 +64,7 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
       name: newName.trim(),
       icon: newIcon,
       color: newColor,
+      icon_style: newIconStyle,
     });
     
     resetForm();
@@ -81,6 +84,7 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
     setNewName(category.name);
     setNewIcon(category.icon);
     setNewColor(category.color);
+    setNewIconStyle(category.icon_style || 'outline');
     setIsAdding(false);
   };
 
@@ -94,6 +98,7 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
     setNewName('');
     setNewIcon('package');
     setNewColor('#6366f1');
+    setNewIconStyle('outline');
   };
 
   const cancelEdit = () => {
@@ -114,7 +119,7 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
               className="w-7 h-7 flex items-center justify-center rounded-lg"
               style={{ backgroundColor: category.color + '20' }}
             >
-              <CategoryIcon icon={category.icon} color={category.color} size="sm" />
+              <CategoryIcon icon={category.icon} color={category.color} size="sm" style={category.icon_style || 'outline'} />
             </div>
             <span className="font-medium text-foreground text-sm">{category.name}</span>
             {category.is_default && (
@@ -184,7 +189,28 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
                     : 'bg-secondary hover:bg-secondary/80'
                 }`}
               >
-                <CategoryIcon icon={icon} size="sm" />
+                <CategoryIcon icon={icon} size="sm" style={newIconStyle} />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block">风格</label>
+          <div className="flex gap-2">
+            {ICON_STYLES.map((style) => (
+              <button
+                key={style.value}
+                type="button"
+                onClick={() => setNewIconStyle(style.value)}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                  newIconStyle === style.value
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary hover:bg-secondary/80 text-foreground'
+                }`}
+              >
+                <CategoryIcon icon="heart" size="sm" style={style.value} color={newIconStyle === style.value ? undefined : newColor} />
+                {style.label}
               </button>
             ))}
           </div>
