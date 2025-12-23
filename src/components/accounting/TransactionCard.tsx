@@ -89,9 +89,11 @@ export function TransactionCard({
     <>
       <div 
         className={cn(
-          'relative rounded-2xl p-3 transition-all duration-200 cursor-pointer',
+          'relative rounded-2xl p-3 cursor-pointer card-enter',
           'bg-card/80 backdrop-blur-sm border border-border/50',
+          'transition-all duration-200 ease-out',
           'hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5',
+          'active:scale-[0.98] active:shadow-md',
           isSelected && 'ring-2 ring-primary bg-primary/5 border-primary/30'
         )}
         onClick={handleCardClick}
