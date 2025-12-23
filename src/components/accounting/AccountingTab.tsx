@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Tag, Bell } from 'lucide-react';
+import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Tag, Bell, PieChart } from 'lucide-react';
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { TransactionCard } from './TransactionCard';
 import { AddTransaction } from './AddTransaction';
@@ -9,6 +9,7 @@ import { BudgetManager } from './BudgetManager';
 import { DateFilter, DateRange } from './DateFilter';
 import { CategoryManager } from './CategoryManager';
 import { ReminderSettings } from './ReminderSettings';
+import { StatisticsReport } from './StatisticsReport';
 import { Button } from '@/components/ui/button';
 import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
@@ -19,6 +20,7 @@ export function AccountingTab() {
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showReminderSettings, setShowReminderSettings] = useState(false);
+  const [showStatistics, setShowStatistics] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<(Transaction & { id: string }) | null>(null);
 
   const handleAdd = async (data: Omit<Transaction, 'id'>) => {
@@ -115,6 +117,15 @@ export function AccountingTab() {
           >
             <Bell className="w-4 h-4" />
             <span className="hidden sm:inline">提醒</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowStatistics(true)}
+            className="gap-1"
+          >
+            <PieChart className="w-4 h-4" />
+            <span className="hidden sm:inline">报表</span>
           </Button>
           <ExportData transactions={filteredTransactions} />
         </div>
@@ -234,6 +245,13 @@ export function AccountingTab() {
       <ReminderSettings 
         isOpen={showReminderSettings} 
         onClose={() => setShowReminderSettings(false)} 
+      />
+
+      {/* 统计报表 */}
+      <StatisticsReport 
+        transactions={transactions}
+        isOpen={showStatistics} 
+        onClose={() => setShowStatistics(false)} 
       />
     </div>
   );
