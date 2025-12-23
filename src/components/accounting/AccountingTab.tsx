@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Tag, Bell, PieChart, Search, X, CheckSquare } from 'lucide-react';
+import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Tag, Bell, PieChart, Search, X, CheckSquare, Database } from 'lucide-react';
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { useTags } from '@/hooks/useTags';
 import { TransactionCard } from './TransactionCard';
@@ -14,6 +14,7 @@ import { ReminderSettings } from './ReminderSettings';
 import { StatisticsReport } from './StatisticsReport';
 import { TagFilter } from './TagFilter';
 import { BatchActions } from './BatchActions';
+import { BackupManager } from './BackupManager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
@@ -28,6 +29,7 @@ export function AccountingTab() {
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showReminderSettings, setShowReminderSettings] = useState(false);
   const [showStatistics, setShowStatistics] = useState(false);
+  const [showBackupManager, setShowBackupManager] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [transactionTagMap, setTransactionTagMap] = useState<Record<string, string[]>>({});
@@ -281,6 +283,15 @@ export function AccountingTab() {
             <PieChart className="w-4 h-4" />
             <span className="hidden sm:inline">报表</span>
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowBackupManager(true)}
+            className="gap-1"
+          >
+            <Database className="w-4 h-4" />
+            <span className="hidden sm:inline">备份</span>
+          </Button>
           <ImportData onImportComplete={refetch} />
           <ExportData transactions={filteredTransactions} />
         </div>
@@ -410,6 +421,13 @@ export function AccountingTab() {
         transactions={transactions}
         isOpen={showStatistics} 
         onClose={() => setShowStatistics(false)} 
+      />
+
+      {/* 备份管理 */}
+      <BackupManager
+        isOpen={showBackupManager}
+        onClose={() => setShowBackupManager(false)}
+        onRestoreComplete={refetch}
       />
 
       {/* 批量操作栏 */}

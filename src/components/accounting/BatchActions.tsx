@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, Tag, FolderEdit, X, CheckCheck, ToggleLeft } from 'lucide-react';
+import { Trash2, Tag, FolderEdit, X, CheckCheck, ToggleLeft, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -25,11 +25,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
+import { format } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
 
 interface BatchActionsProps {
   selectedIds: string[];
@@ -53,8 +57,10 @@ export function BatchActions({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [showTagDialog, setShowTagDialog] = useState(false);
+  const [showDateDialog, setShowDateDialog] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isProcessing, setIsProcessing] = useState(false);
   
   const { getExpenseCategories, getIncomeCategories } = useCategories();
@@ -144,6 +150,31 @@ export function BatchActions({
     );
   };
 
+  const handleBatchUpdateDate = async () => {
+    if (!selectedDate) return;
+    
+    setIsProcessing(true);
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ date: selectedDate.toISOString() })
+        .in('id', selectedIds);
+
+      if (error) throw error;
+      
+      toast({ title: `已更新 ${selectedIds.length} 条记录的日期` });
+      setShowDateDialog(false);
+      setSelectedDate(undefined);
+      onClearSelection();
+      onActionComplete();
+    } catch (error) {
+      console.error('Error updating dates:', error);
+      toast({ title: '更新失败', variant: 'destructive' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <>
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 bg-primary text-primary-foreground rounded-full shadow-lg px-4 py-3 flex items-center gap-3 animate-fade-in">
@@ -194,6 +225,17 @@ export function BatchActions({
         >
           <Tag className="w-4 h-4" />
           <span className="hidden sm:inline">标签</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
+          onClick={() => setShowDateDialog(true)}
+          disabled={selectedIds.length === 0}
+        >
+          <CalendarDays className="w-4 h-4" />
+          <span className="hidden sm:inline">日期</span>
         </Button>
         
         <Button
@@ -340,6 +382,44 @@ export function BatchActions({
               disabled={isProcessing}
             >
               {isProcessing ? '更新中...' : '确认设置'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Date Dialog */}
+      <Dialog open={showDateDialog} onOpenChange={setShowDateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>批量修改日期</DialogTitle>
+            <DialogDescription>
+              将选中的 {selectedIds.length} 条记录修改为同一日期
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center py-4">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              locale={zhCN}
+              className="rounded-md border"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDateDialog(false)}
+              className="flex-1"
+              disabled={isProcessing}
+            >
+              取消
+            </Button>
+            <Button 
+              onClick={handleBatchUpdateDate}
+              className="flex-1"
+              disabled={!selectedDate || isProcessing}
+            >
+              {isProcessing ? '更新中...' : selectedDate ? `修改为 ${format(selectedDate, 'yyyy-MM-dd')}` : '选择日期'}
             </Button>
           </div>
         </DialogContent>
