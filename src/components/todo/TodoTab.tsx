@@ -1,32 +1,15 @@
 import { useState } from 'react';
-import { Plus, CheckSquare } from 'lucide-react';
-import { Todo } from '@/types';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { Plus, CheckSquare, Loader2 } from 'lucide-react';
+import { useTodos, Todo } from '@/hooks/useTodos';
 import { TodoItem } from './TodoItem';
 import { AddTodo } from './AddTodo';
 
 export function TodoTab() {
-  const [todos, setTodos] = useLocalStorage<Todo[]>('todos', []);
+  const { todos, loading, addTodo, toggleTodo, deleteTodo } = useTodos();
   const [isAdding, setIsAdding] = useState(false);
 
-  const handleAdd = (data: Omit<Todo, 'id' | 'completed' | 'createdAt'>) => {
-    const newTodo: Todo = {
-      ...data,
-      id: crypto.randomUUID(),
-      completed: false,
-      createdAt: new Date(),
-    };
-    setTodos([newTodo, ...todos]);
-  };
-
-  const handleToggle = (id: string) => {
-    setTodos(todos.map(t => 
-      t.id === id ? { ...t, completed: !t.completed } : t
-    ));
-  };
-
-  const handleDelete = (id: string) => {
-    setTodos(todos.filter(t => t.id !== id));
+  const handleAdd = async (data: { title: string; priority: Todo['priority'] }) => {
+    await addTodo(data.title, data.priority);
   };
 
   const pendingTodos = todos.filter(t => !t.completed);
@@ -34,6 +17,14 @@ export function TodoTab() {
   const completionRate = todos.length > 0 
     ? Math.round((completedTodos.length / todos.length) * 100) 
     : 0;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="pb-20">
@@ -76,9 +67,15 @@ export function TodoTab() {
               {pendingTodos.map((todo) => (
                 <TodoItem 
                   key={todo.id} 
-                  todo={todo} 
-                  onToggle={handleToggle}
-                  onDelete={handleDelete}
+                  todo={{
+                    id: todo.id,
+                    title: todo.title,
+                    completed: todo.completed,
+                    priority: todo.priority,
+                    createdAt: new Date(todo.created_at),
+                  }} 
+                  onToggle={toggleTodo}
+                  onDelete={deleteTodo}
                 />
               ))}
             </div>
@@ -90,9 +87,15 @@ export function TodoTab() {
               {completedTodos.map((todo) => (
                 <TodoItem 
                   key={todo.id} 
-                  todo={todo} 
-                  onToggle={handleToggle}
-                  onDelete={handleDelete}
+                  todo={{
+                    id: todo.id,
+                    title: todo.title,
+                    completed: todo.completed,
+                    priority: todo.priority,
+                    createdAt: new Date(todo.created_at),
+                  }} 
+                  onToggle={toggleTodo}
+                  onDelete={deleteTodo}
                 />
               ))}
             </div>

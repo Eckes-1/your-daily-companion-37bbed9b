@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import { X, Plus, Minus } from 'lucide-react';
-import { Transaction } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
+interface TransactionData {
+  type: 'income' | 'expense';
+  amount: number;
+  category: string;
+  description: string;
+  date: string;
+}
+
 interface AddTransactionProps {
-  onAdd: (transaction: Omit<Transaction, 'id'>) => void;
+  onAdd: (transaction: TransactionData) => void;
   onClose: () => void;
 }
 
@@ -35,7 +42,7 @@ export function AddTransaction({ onAdd, onClose }: AddTransactionProps) {
       amount: parseFloat(amount),
       category,
       description,
-      date: new Date(),
+      date: new Date().toISOString(),
     });
     onClose();
   };

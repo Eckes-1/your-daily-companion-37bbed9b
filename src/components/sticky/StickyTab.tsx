@@ -1,26 +1,24 @@
 import { useState } from 'react';
-import { Plus, StickyNote } from 'lucide-react';
-import { Sticky } from '@/types';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { Plus, StickyNote, Loader2 } from 'lucide-react';
+import { useStickies, Sticky } from '@/hooks/useStickies';
 import { StickyNoteCard } from './StickyNote';
 import { AddSticky } from './AddSticky';
 
 export function StickyTab() {
-  const [stickies, setStickies] = useLocalStorage<Sticky[]>('stickies', []);
+  const { stickies, loading, addSticky, deleteSticky } = useStickies();
   const [isAdding, setIsAdding] = useState(false);
 
-  const handleAdd = (data: Omit<Sticky, 'id' | 'createdAt'>) => {
-    const newSticky: Sticky = {
-      ...data,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-    };
-    setStickies([newSticky, ...stickies]);
+  const handleAdd = async (data: { content: string; color: Sticky['color'] }) => {
+    await addSticky(data.content, data.color);
   };
 
-  const handleDelete = (id: string) => {
-    setStickies(stickies.filter(s => s.id !== id));
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="pb-20">
@@ -39,8 +37,13 @@ export function StickyTab() {
           {stickies.map((sticky) => (
             <StickyNoteCard 
               key={sticky.id} 
-              sticky={sticky} 
-              onDelete={handleDelete}
+              sticky={{
+                id: sticky.id,
+                content: sticky.content,
+                color: sticky.color,
+                createdAt: new Date(sticky.created_at),
+              }} 
+              onDelete={deleteSticky}
             />
           ))}
         </div>

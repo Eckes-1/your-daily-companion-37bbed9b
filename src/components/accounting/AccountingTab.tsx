@@ -1,24 +1,15 @@
 import { useState } from 'react';
-import { Plus, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
-import { Transaction } from '@/types';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { Plus, Wallet, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
+import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { TransactionCard } from './TransactionCard';
 import { AddTransaction } from './AddTransaction';
 
 export function AccountingTab() {
-  const [transactions, setTransactions] = useLocalStorage<Transaction[]>('transactions', []);
+  const { transactions, loading, addTransaction, deleteTransaction } = useTransactions();
   const [isAdding, setIsAdding] = useState(false);
 
-  const handleAdd = (data: Omit<Transaction, 'id'>) => {
-    const newTransaction: Transaction = {
-      ...data,
-      id: crypto.randomUUID(),
-    };
-    setTransactions([newTransaction, ...transactions]);
-  };
-
-  const handleDelete = (id: string) => {
-    setTransactions(transactions.filter(t => t.id !== id));
+  const handleAdd = async (data: Omit<Transaction, 'id'>) => {
+    await addTransaction(data);
   };
 
   const totalIncome = transactions
@@ -30,6 +21,14 @@ export function AccountingTab() {
     .reduce((sum, t) => sum + t.amount, 0);
 
   const balance = totalIncome - totalExpense;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="pb-20">
@@ -77,8 +76,11 @@ export function AccountingTab() {
           {transactions.map((transaction) => (
             <TransactionCard 
               key={transaction.id} 
-              transaction={transaction} 
-              onDelete={handleDelete}
+              transaction={{
+                ...transaction,
+                date: new Date(transaction.date),
+              }} 
+              onDelete={deleteTransaction}
             />
           ))}
         </div>
