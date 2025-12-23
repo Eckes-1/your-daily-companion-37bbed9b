@@ -1,9 +1,10 @@
-import { Trash2, Edit2, Image } from 'lucide-react';
+import { Trash2, Edit2, Image, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useTags, Tag } from '@/hooks/useTags';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface TransactionDisplay {
   id: string;
@@ -19,6 +20,9 @@ interface TransactionCardProps {
   transaction: TransactionDisplay;
   onDelete: (id: string) => void;
   onEdit: (id: string) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onSelect?: (id: string) => void;
 }
 
 const categoryIcons: Record<string, string> = {
@@ -32,7 +36,14 @@ const categoryIcons: Record<string, string> = {
   other: '📝',
 };
 
-export function TransactionCard({ transaction, onDelete, onEdit }: TransactionCardProps) {
+export function TransactionCard({ 
+  transaction, 
+  onDelete, 
+  onEdit,
+  selectionMode = false,
+  isSelected = false,
+  onSelect
+}: TransactionCardProps) {
   const [showImage, setShowImage] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
   const { getTransactionTags } = useTags();
@@ -41,19 +52,35 @@ export function TransactionCard({ transaction, onDelete, onEdit }: TransactionCa
     getTransactionTags(transaction.id).then(setTags);
   }, [transaction.id]);
 
+  const handleCardClick = () => {
+    if (selectionMode && onSelect) {
+      onSelect(transaction.id);
+    }
+  };
+
   return (
     <>
       <div 
         className={cn(
-          'glass-card p-4 animate-fade-in group',
-          transaction.type === 'expense' ? 'border-l-4 border-l-destructive/50' : 'border-l-4 border-l-accent/50'
+          'glass-card p-4 animate-fade-in group cursor-pointer',
+          transaction.type === 'expense' ? 'border-l-4 border-l-destructive/50' : 'border-l-4 border-l-accent/50',
+          isSelected && 'ring-2 ring-primary bg-primary/5'
         )}
+        onClick={handleCardClick}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <span className="text-2xl shrink-0">
-              {categoryIcons[transaction.category] || categoryIcons.other}
-            </span>
+            {selectionMode ? (
+              <Checkbox 
+                checked={isSelected}
+                onCheckedChange={() => onSelect?.(transaction.id)}
+                className="shrink-0"
+              />
+            ) : (
+              <span className="text-2xl shrink-0">
+                {categoryIcons[transaction.category] || categoryIcons.other}
+              </span>
+            )}
             <div className="min-w-0 flex-1">
               <p className="font-medium text-foreground truncate">
                 {transaction.description || transaction.category}
@@ -64,7 +91,10 @@ export function TransactionCard({ transaction, onDelete, onEdit }: TransactionCa
                 </p>
                 {transaction.image_url && (
                   <button
-                    onClick={() => setShowImage(true)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowImage(true);
+                    }}
                     className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"
                   >
                     <Image className="w-3 h-3" />
@@ -95,18 +125,28 @@ export function TransactionCard({ transaction, onDelete, onEdit }: TransactionCa
             )}>
               {transaction.type === 'expense' ? '-' : '+'}¥{transaction.amount.toFixed(2)}
             </span>
-            <button
-              onClick={() => onEdit(transaction.id)}
-              className="p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => onDelete(transaction.id)}
-              className="p-2 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {!selectionMode && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(transaction.id);
+                  }}
+                  className="p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(transaction.id);
+                  }}
+                  className="p-2 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
