@@ -6,6 +6,7 @@ import { TransactionCard } from './TransactionCard';
 import { AddTransaction } from './AddTransaction';
 import { AccountingCharts } from './AccountingCharts';
 import { ExportData } from './ExportData';
+import { ImportData } from './ImportData';
 import { BudgetManager } from './BudgetManager';
 import { DateFilter, DateRange } from './DateFilter';
 import { CategoryManager } from './CategoryManager';
@@ -18,7 +19,7 @@ import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } fro
 import { supabase } from '@/integrations/supabase/client';
 
 export function AccountingTab() {
-  const { transactions, loading, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
+  const { transactions, loading, addTransaction, updateTransaction, deleteTransaction, refetch } = useTransactions();
   const [isAdding, setIsAdding] = useState(false);
   const [showCharts, setShowCharts] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
@@ -208,6 +209,7 @@ export function AccountingTab() {
             <PieChart className="w-4 h-4" />
             <span className="hidden sm:inline">报表</span>
           </Button>
+          <ImportData onImportComplete={refetch} />
           <ExportData transactions={filteredTransactions} />
         </div>
       </div>
