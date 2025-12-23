@@ -106,115 +106,58 @@ export function PDFExportDialog({ isOpen, onClose, transactions }: PDFExportDial
       doc.addFont(FONT_FILE, FONT_NAME, 'bold');
       doc.setFont(FONT_NAME, 'normal');
 
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-
-      // ========== 封面页 ==========
-      doc.setFillColor(255, 107, 53);
-      doc.rect(0, 0, pageWidth, 60, 'F');
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(28);
-      doc.text('记账报表', pageWidth / 2, 35, { align: 'center' });
-
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
-      doc.text(`生成时间：${format(now, 'yyyy-MM-dd HH:mm')}`, pageWidth / 2, 75, { align: 'center' });
-      doc.text(`数据范围：${rangeLabel}`, pageWidth / 2, 88, { align: 'center' });
-
       // 汇总数据
       const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
       const totalExpense = filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
       const balance = totalIncome - totalExpense;
 
-      const summaryY = 110;
-      doc.setFontSize(14);
-      doc.text('收支概览', pageWidth / 2, summaryY, { align: 'center' });
-
-      doc.setFontSize(11);
-      doc.text(`总收入：¥${totalIncome.toFixed(2)}`, 40, summaryY + 15);
-      doc.text(`总支出：¥${totalExpense.toFixed(2)}`, 40, summaryY + 28);
-      doc.text(`结余：¥${balance.toFixed(2)}`, 40, summaryY + 41);
-      doc.text(`交易笔数：${filteredTransactions.length}`, 40, summaryY + 54);
-
-      // ========== 分类饼图数据（文本模拟） ==========
-      const categoryData: Record<string, number> = {};
-      filteredTransactions.filter(t => t.type === 'expense').forEach(t => {
-        categoryData[t.category] = (categoryData[t.category] || 0) + t.amount;
-      });
-      const sortedCategories = Object.entries(categoryData).sort((a, b) => b[1] - a[1]);
-
-      if (sortedCategories.length > 0) {
-        doc.setFontSize(14);
-        doc.text('支出分类占比', pageWidth / 2, summaryY + 75, { align: 'center' });
-
-        doc.setFontSize(10);
-        let catY = summaryY + 90;
-        const colors = [[255, 107, 53], [52, 152, 219], [46, 204, 113], [155, 89, 182], [241, 196, 15], [149, 165, 166]];
-        sortedCategories.slice(0, 6).forEach(([cat, amount], idx) => {
-          const pct = ((amount / totalExpense) * 100).toFixed(1);
-          const color = colors[idx % colors.length];
-          doc.setFillColor(color[0], color[1], color[2]);
-          doc.rect(40, catY - 4, 8, 8, 'F');
-          doc.setTextColor(0, 0, 0);
-          doc.text(`${cat}：¥${amount.toFixed(2)} (${pct}%)`, 52, catY + 2);
-          catY += 14;
-        });
-      }
-
-      // ========== 趋势图数据（文本模拟） ==========
-      const monthlyData: Record<string, { income: number; expense: number }> = {};
-      filteredTransactions.forEach(t => {
-        const month = format(new Date(t.date), 'yyyy-MM');
-        if (!monthlyData[month]) monthlyData[month] = { income: 0, expense: 0 };
-        if (t.type === 'income') monthlyData[month].income += t.amount;
-        else monthlyData[month].expense += t.amount;
-      });
-      const sortedMonths = Object.keys(monthlyData).sort();
-
-      if (sortedMonths.length > 1) {
-        doc.setFontSize(14);
-        doc.text('月度收支趋势', pageWidth / 2, pageHeight - 70, { align: 'center' });
-
-        doc.setFontSize(9);
-        let trendY = pageHeight - 55;
-        sortedMonths.slice(-6).forEach(month => {
-          const d = monthlyData[month];
-          doc.text(`${month}  收入：¥${d.income.toFixed(0)}  支出：¥${d.expense.toFixed(0)}`, 40, trendY);
-          trendY += 10;
-        });
-      }
-
-      // ========== 第二页：分类汇总表 ==========
-      doc.addPage();
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(16);
-      doc.text('分类汇总', 14, 20);
+      // 标题
+      doc.setFontSize(18);
+      doc.text('记账报表', 14, 20);
       doc.setFontSize(10);
-      doc.text(`数据范围：${rangeLabel}`, 14, 28);
+      doc.text(`生成时间：${format(now, 'yyyy-MM-dd HH:mm')}`, 14, 28);
+      doc.text(`数据范围：${rangeLabel}`, 14, 35);
 
-      const categoryTableData = sortedCategories.map(([cat, amount]) => [
+      // 汇总
+      doc.setFontSize(12);
+      doc.text('收支汇总', 14, 48);
+      doc.setFontSize(10);
+      doc.text(`总收入：¥${totalIncome.toFixed(2)}`, 14, 56);
+      doc.text(`总支出：¥${totalExpense.toFixed(2)}`, 14, 63);
+      doc.text(`结余：¥${balance.toFixed(2)}`, 14, 70);
+      doc.text(`交易笔数：${filteredTransactions.length}`, 14, 77);
+
+      // 分类汇总
+      const categoryData: Record<string, { income: number; expense: number; count: number }> = {};
+      filteredTransactions.forEach(t => {
+        if (!categoryData[t.category]) {
+          categoryData[t.category] = { income: 0, expense: 0, count: 0 };
+        }
+        if (t.type === 'income') {
+          categoryData[t.category].income += t.amount;
+        } else {
+          categoryData[t.category].expense += t.amount;
+        }
+        categoryData[t.category].count++;
+      });
+
+      const categoryTableData = Object.entries(categoryData).map(([cat, data]) => [
         cat,
-        `¥${amount.toFixed(2)}`,
-        `${((amount / totalExpense) * 100).toFixed(1)}%`,
+        `¥${data.income.toFixed(2)}`,
+        `¥${data.expense.toFixed(2)}`,
+        data.count.toString(),
       ]);
 
       autoTable(doc, {
-        startY: 35,
-        head: [['分类', '金额', '占比']],
+        startY: 85,
+        head: [['分类', '收入', '支出', '笔数']],
         body: categoryTableData,
         theme: 'striped',
         headStyles: { fillColor: [255, 107, 53], font: FONT_NAME, fontStyle: 'bold' },
         styles: { font: FONT_NAME, fontStyle: 'normal', fontSize: 10 },
       });
 
-      // ========== 第三页：明细表 ==========
-      doc.addPage();
-      doc.setFontSize(16);
-      doc.text('交易明细', 14, 20);
-      doc.setFontSize(10);
-      doc.text(`数据范围：${rangeLabel}  |  共 ${filteredTransactions.length} 笔`, 14, 28);
-
+      // 明细表
       const detailData = filteredTransactions.map(t => [
         format(new Date(t.date), 'yyyy-MM-dd'),
         t.type === 'income' ? '收入' : '支出',
@@ -223,8 +166,9 @@ export function PDFExportDialog({ isOpen, onClose, transactions }: PDFExportDial
         t.description || '-',
       ]);
 
+      const finalY = (doc as any).lastAutoTable?.finalY || 130;
       autoTable(doc, {
-        startY: 35,
+        startY: finalY + 10,
         head: [['日期', '类型', '分类', '金额', '备注']],
         body: detailData,
         theme: 'grid',
@@ -245,14 +189,14 @@ export function PDFExportDialog({ isOpen, onClose, transactions }: PDFExportDial
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            导出 PDF 报表
+            导出 PDF
           </DialogTitle>
           <DialogDescription>
-            选择导出范围，报表将包含封面、图表和明细
+            选择导出范围
           </DialogDescription>
         </DialogHeader>
 
