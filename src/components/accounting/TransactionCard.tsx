@@ -32,15 +32,80 @@ interface TransactionCardProps {
   onSelect?: (id: string) => void;
 }
 
-const categoryConfig: Record<string, { icon: string; bg: string; color: string }> = {
-  food: { icon: '🍜', bg: 'bg-orange-100 dark:bg-orange-900/30', color: 'text-orange-600 dark:text-orange-400' },
-  transport: { icon: '🚗', bg: 'bg-blue-100 dark:bg-blue-900/30', color: 'text-blue-600 dark:text-blue-400' },
-  shopping: { icon: '🛍️', bg: 'bg-pink-100 dark:bg-pink-900/30', color: 'text-pink-600 dark:text-pink-400' },
-  entertainment: { icon: '🎮', bg: 'bg-purple-100 dark:bg-purple-900/30', color: 'text-purple-600 dark:text-purple-400' },
-  salary: { icon: '💰', bg: 'bg-green-100 dark:bg-green-900/30', color: 'text-green-600 dark:text-green-400' },
-  investment: { icon: '📈', bg: 'bg-teal-100 dark:bg-teal-900/30', color: 'text-teal-600 dark:text-teal-400' },
-  gift: { icon: '🎁', bg: 'bg-red-100 dark:bg-red-900/30', color: 'text-red-600 dark:text-red-400' },
-  other: { icon: '📝', bg: 'bg-gray-100 dark:bg-gray-800/50', color: 'text-gray-600 dark:text-gray-400' },
+const categoryConfig: Record<string, { icon: string; gradient: string }> = {
+  // 支出类别
+  food: { icon: '🍜', gradient: 'from-orange-400 to-amber-500' },
+  餐饮: { icon: '🍜', gradient: 'from-orange-400 to-amber-500' },
+  早餐: { icon: '🥐', gradient: 'from-amber-300 to-orange-400' },
+  午餐: { icon: '🍱', gradient: 'from-orange-400 to-red-400' },
+  晚餐: { icon: '🍲', gradient: 'from-red-400 to-orange-500' },
+  零食: { icon: '🍪', gradient: 'from-yellow-400 to-amber-500' },
+  饮料: { icon: '🧋', gradient: 'from-pink-400 to-rose-500' },
+  
+  transport: { icon: '🚗', gradient: 'from-blue-400 to-cyan-500' },
+  交通: { icon: '🚗', gradient: 'from-blue-400 to-cyan-500' },
+  地铁: { icon: '🚇', gradient: 'from-blue-500 to-indigo-500' },
+  公交: { icon: '🚌', gradient: 'from-sky-400 to-blue-500' },
+  打车: { icon: '🚕', gradient: 'from-yellow-400 to-orange-400' },
+  加油: { icon: '⛽', gradient: 'from-slate-400 to-gray-500' },
+  停车: { icon: '🅿️', gradient: 'from-blue-300 to-blue-500' },
+  
+  shopping: { icon: '🛍️', gradient: 'from-pink-400 to-rose-500' },
+  购物: { icon: '🛍️', gradient: 'from-pink-400 to-rose-500' },
+  服饰: { icon: '👗', gradient: 'from-fuchsia-400 to-pink-500' },
+  数码: { icon: '📱', gradient: 'from-slate-400 to-gray-600' },
+  日用: { icon: '🧴', gradient: 'from-cyan-400 to-teal-500' },
+  
+  entertainment: { icon: '🎮', gradient: 'from-purple-400 to-violet-500' },
+  娱乐: { icon: '🎮', gradient: 'from-purple-400 to-violet-500' },
+  电影: { icon: '🎬', gradient: 'from-rose-400 to-red-500' },
+  游戏: { icon: '🎮', gradient: 'from-violet-400 to-purple-600' },
+  音乐: { icon: '🎵', gradient: 'from-green-400 to-emerald-500' },
+  旅游: { icon: '✈️', gradient: 'from-sky-400 to-blue-600' },
+  
+  医疗: { icon: '💊', gradient: 'from-red-400 to-rose-500' },
+  健康: { icon: '❤️', gradient: 'from-rose-400 to-red-500' },
+  运动: { icon: '⚽', gradient: 'from-green-400 to-lime-500' },
+  健身: { icon: '💪', gradient: 'from-orange-400 to-red-500' },
+  
+  教育: { icon: '📚', gradient: 'from-indigo-400 to-blue-500' },
+  书籍: { icon: '📖', gradient: 'from-amber-400 to-yellow-500' },
+  培训: { icon: '🎓', gradient: 'from-blue-400 to-indigo-500' },
+  
+  居住: { icon: '🏠', gradient: 'from-emerald-400 to-teal-500' },
+  房租: { icon: '🏢', gradient: 'from-slate-400 to-gray-500' },
+  水电: { icon: '💡', gradient: 'from-yellow-400 to-amber-500' },
+  物业: { icon: '🔑', gradient: 'from-gray-400 to-slate-500' },
+  
+  通讯: { icon: '📞', gradient: 'from-green-400 to-teal-500' },
+  话费: { icon: '📱', gradient: 'from-blue-400 to-cyan-500' },
+  网费: { icon: '🌐', gradient: 'from-violet-400 to-purple-500' },
+  
+  人情: { icon: '🎁', gradient: 'from-red-400 to-pink-500' },
+  红包: { icon: '🧧', gradient: 'from-red-500 to-rose-600' },
+  礼物: { icon: '🎁', gradient: 'from-pink-400 to-rose-500' },
+  
+  宠物: { icon: '🐱', gradient: 'from-amber-400 to-orange-500' },
+  美容: { icon: '💄', gradient: 'from-pink-400 to-fuchsia-500' },
+  
+  // 收入类别
+  salary: { icon: '💰', gradient: 'from-emerald-400 to-green-500' },
+  工资: { icon: '💰', gradient: 'from-emerald-400 to-green-500' },
+  奖金: { icon: '🏆', gradient: 'from-yellow-400 to-amber-500' },
+  
+  investment: { icon: '📈', gradient: 'from-teal-400 to-cyan-500' },
+  理财: { icon: '📈', gradient: 'from-teal-400 to-cyan-500' },
+  股票: { icon: '📊', gradient: 'from-green-400 to-emerald-500' },
+  基金: { icon: '💹', gradient: 'from-blue-400 to-cyan-500' },
+  
+  gift: { icon: '🎁', gradient: 'from-red-400 to-pink-500' },
+  兼职: { icon: '💼', gradient: 'from-indigo-400 to-violet-500' },
+  副业: { icon: '🚀', gradient: 'from-orange-400 to-red-500' },
+  退款: { icon: '💵', gradient: 'from-green-400 to-teal-500' },
+  报销: { icon: '🧾', gradient: 'from-blue-400 to-indigo-500' },
+  
+  other: { icon: '📝', gradient: 'from-gray-400 to-slate-500' },
+  其他: { icon: '📝', gradient: 'from-gray-400 to-slate-500' },
 };
 
 export function TransactionCard({ 
@@ -92,8 +157,8 @@ export function TransactionCard({
           ) : (
             <div className={cn(
               'w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0',
-              'shadow-sm',
-              config.bg
+              'shadow-md bg-gradient-to-br',
+              config.gradient
             )}>
               {config.icon}
             </div>
