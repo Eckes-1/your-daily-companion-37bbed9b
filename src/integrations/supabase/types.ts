@@ -182,6 +182,30 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_transactions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          transaction_data: Json
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id: string
+          transaction_data: Json
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          transaction_data?: Json
+          view_count?: number
+        }
+        Relationships: []
+      }
       stickies: {
         Row: {
           color: string
