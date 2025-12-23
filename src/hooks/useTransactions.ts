@@ -10,6 +10,7 @@ export interface Transaction {
   category: string;
   description: string;
   date: string;
+  image_url?: string;
 }
 
 export function useTransactions() {
@@ -31,7 +32,8 @@ export function useTransactions() {
       setTransactions((data || []).map(t => ({
         ...t,
         type: t.type as 'income' | 'expense',
-        amount: Number(t.amount)
+        amount: Number(t.amount),
+        image_url: t.image_url || undefined
       })));
     } catch (error) {
       console.error('Error fetching transactions:', error);
@@ -56,7 +58,8 @@ export function useTransactions() {
           amount: data.amount,
           category: data.category,
           description: data.description,
-          date: data.date
+          date: data.date,
+          image_url: data.image_url
         })
         .select()
         .single();
@@ -65,12 +68,41 @@ export function useTransactions() {
       setTransactions([{
         ...newData,
         type: newData.type as 'income' | 'expense',
-        amount: Number(newData.amount)
+        amount: Number(newData.amount),
+        image_url: newData.image_url || undefined
       }, ...transactions]);
       toast({ title: '记录已保存' });
     } catch (error) {
       console.error('Error adding transaction:', error);
       toast({ title: '保存失败', variant: 'destructive' });
+    }
+  };
+
+  const updateTransaction = async (id: string, data: Omit<Transaction, 'id'>) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ 
+          type: data.type,
+          amount: data.amount,
+          category: data.category,
+          description: data.description,
+          image_url: data.image_url
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      setTransactions(transactions.map(t => 
+        t.id === id 
+          ? { ...t, ...data, image_url: data.image_url || undefined } 
+          : t
+      ));
+      toast({ title: '记录已更新' });
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      toast({ title: '更新失败', variant: 'destructive' });
     }
   };
 
@@ -90,5 +122,5 @@ export function useTransactions() {
     }
   };
 
-  return { transactions, loading, addTransaction, deleteTransaction, refetch: fetchTransactions };
+  return { transactions, loading, addTransaction, updateTransaction, deleteTransaction, refetch: fetchTransactions };
 }

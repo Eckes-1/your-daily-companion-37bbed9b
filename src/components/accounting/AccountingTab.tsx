@@ -13,15 +13,33 @@ import { Button } from '@/components/ui/button';
 import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
 export function AccountingTab() {
-  const { transactions, loading, addTransaction, deleteTransaction } = useTransactions();
+  const { transactions, loading, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
   const [isAdding, setIsAdding] = useState(false);
   const [showCharts, setShowCharts] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showReminderSettings, setShowReminderSettings] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<(Transaction & { id: string }) | null>(null);
 
   const handleAdd = async (data: Omit<Transaction, 'id'>) => {
     await addTransaction(data);
+  };
+
+  const handleUpdate = async (id: string, data: Omit<Transaction, 'id'>) => {
+    await updateTransaction(id, data);
+  };
+
+  const handleEdit = (id: string) => {
+    const transaction = transactions.find(t => t.id === id);
+    if (transaction) {
+      setEditingTransaction(transaction);
+      setIsAdding(true);
+    }
+  };
+
+  const handleCloseEditor = () => {
+    setIsAdding(false);
+    setEditingTransaction(null);
   };
 
   // 过滤后的交易记录
@@ -176,13 +194,17 @@ export function AccountingTab() {
                 date: new Date(transaction.date),
               }} 
               onDelete={deleteTransaction}
+              onEdit={handleEdit}
             />
           ))}
         </div>
       )}
 
       <button
-        onClick={() => setIsAdding(true)}
+        onClick={() => {
+          setEditingTransaction(null);
+          setIsAdding(true);
+        }}
         className="fab"
       >
         <Plus className="w-6 h-6" />
@@ -191,7 +213,14 @@ export function AccountingTab() {
       {isAdding && (
         <AddTransaction
           onAdd={handleAdd}
-          onClose={() => setIsAdding(false)}
+          onClose={handleCloseEditor}
+          editingTransaction={editingTransaction ? {
+            ...editingTransaction,
+            date: typeof editingTransaction.date === 'string' 
+              ? editingTransaction.date 
+              : new Date(editingTransaction.date).toISOString()
+          } : undefined}
+          onUpdate={handleUpdate}
         />
       )}
 
