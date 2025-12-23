@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Search, X } from 'lucide-react';
+import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Search, X, ChevronDown } from 'lucide-react';
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { TransactionCard } from './TransactionCard';
 import { AddTransaction } from './AddTransaction';
@@ -15,6 +15,7 @@ import { BatchActions } from './BatchActions';
 import { BackupManager } from './BackupManager';
 import { UnifiedToolbarMenu } from './UnifiedToolbarMenu';
 import { PDFExportDialog } from './PDFExportDialog';
+import { OnboardingTutorial } from './OnboardingTutorial';
 import { PullIndicator, LoadMoreIndicator } from '@/components/ui/PullToRefresh';
 import { Input } from '@/components/ui/input';
 import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
@@ -23,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useExportData } from '@/hooks/useExportData';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { cn } from '@/lib/utils';
 
 export function AccountingTab() {
   const { transactions, loading, addTransaction, updateTransaction, deleteTransaction, refetch } = useTransactions();
@@ -42,6 +44,7 @@ export function AccountingTab() {
   const [editingTransaction, setEditingTransaction] = useState<(Transaction & { id: string }) | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showOnboarding, setShowOnboarding] = useState(() => localStorage.getItem('hasCompletedOnboarding') !== 'true');
   const { toast } = useToast();
 
   // 过滤后的交易记录
@@ -204,6 +207,10 @@ export function AccountingTab() {
             >
               <BarChart3 className="w-4 h-4" />
               {showCharts ? '隐藏统计图表' : '查看统计图表'}
+              <ChevronDown className={cn(
+                "w-4 h-4 transition-transform duration-300",
+                showCharts && "rotate-180"
+              )} />
             </button>
             {!hasSeenChartHint && !showCharts && (
               <div className="absolute -top-1 -right-1 flex items-center gap-1 px-2 py-0.5 bg-primary text-primary-foreground text-[10px] font-medium rounded-full animate-pulse">
@@ -214,8 +221,20 @@ export function AccountingTab() {
         )}
       </div>
 
-      {showCharts && <div className="px-4 mb-4"><TrendAnalysis transactions={filteredTransactions} /></div>}
-      {showCharts && <AccountingCharts transactions={filteredTransactions} />}
+      {/* Charts with animation */}
+      <div 
+        className={cn(
+          "grid transition-all duration-300 ease-out",
+          showCharts ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="px-4 mb-4">
+            <TrendAnalysis transactions={filteredTransactions} />
+          </div>
+          <AccountingCharts transactions={filteredTransactions} />
+        </div>
+      </div>
 
       {filteredTransactions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -244,6 +263,9 @@ export function AccountingTab() {
       <ImportData isOpen={showImport} onClose={() => setShowImport(false)} onImportComplete={refetch} />
       <PDFExportDialog isOpen={showPDFExport} onClose={() => setShowPDFExport(false)} transactions={transactions} />
       {selectionMode && <BatchActions selectedIds={selectedIds} filteredCount={filteredTransactions.length} onClearSelection={handleClearSelection} onDelete={handleBatchDelete} onActionComplete={refetch} onSelectAll={selectAllFiltered} onInvertSelect={invertSelectFiltered} />}
+      
+      {/* Onboarding Tutorial */}
+      {showOnboarding && <OnboardingTutorial onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
 }
