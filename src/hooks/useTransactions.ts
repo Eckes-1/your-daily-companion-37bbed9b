@@ -51,6 +51,48 @@ export function useTransactions() {
 
   useEffect(() => {
     fetchTransactions();
+
+    // Subscribe to realtime changes for multi-device sync
+    const channel = supabase
+      .channel('transactions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions'
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newTransaction = payload.new as any;
+            setTransactions(prev => {
+              // Avoid duplicates
+              if (prev.some(t => t.id === newTransaction.id)) return prev;
+              return [{
+                ...newTransaction,
+                type: newTransaction.type as 'income' | 'expense',
+                amount: Number(newTransaction.amount),
+                image_url: newTransaction.image_url || undefined
+              }, ...prev];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as any;
+            setTransactions(prev => prev.map(t => 
+              t.id === updated.id 
+                ? { ...t, ...updated, type: updated.type as 'income' | 'expense', amount: Number(updated.amount), image_url: updated.image_url || undefined }
+                : t
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            const deleted = payload.old as any;
+            setTransactions(prev => prev.filter(t => t.id !== deleted.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const addTransaction = async (data: Omit<Transaction, 'id'>) => {
