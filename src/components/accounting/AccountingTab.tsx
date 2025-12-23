@@ -200,7 +200,7 @@ export function AccountingTab() {
       <ReminderSettings isOpen={showReminderSettings} onClose={() => setShowReminderSettings(false)} />
       <StatisticsReport transactions={transactions} isOpen={showStatistics} onClose={() => setShowStatistics(false)} />
       <BackupManager isOpen={showBackupManager} onClose={() => setShowBackupManager(false)} onRestoreComplete={refetch} />
-      {showImport && <ImportData onImportComplete={() => { refetch(); setShowImport(false); }} />}
+      <ImportData isOpen={showImport} onClose={() => setShowImport(false)} onImportComplete={refetch} />
       {selectionMode && <BatchActions selectedIds={selectedIds} filteredCount={filteredTransactions.length} onClearSelection={handleClearSelection} onDelete={handleBatchDelete} onActionComplete={refetch} onSelectAll={selectAllFiltered} onInvertSelect={invertSelectFiltered} />}
     </div>
   );
