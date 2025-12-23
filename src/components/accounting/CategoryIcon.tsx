@@ -66,20 +66,29 @@ export const CATEGORY_ICONS = [
   'briefcase', 'credit-card', 'trophy', 'piggy-bank', 'banknote', 'chart-line', 'receipt'
 ];
 
+// Icon style types
+export type IconStyle = 'outline' | 'filled';
+
+export const ICON_STYLES: { value: IconStyle; label: string }[] = [
+  { value: 'outline', label: '描边' },
+  { value: 'filled', label: '填充' },
+];
+
 interface CategoryIconProps {
   icon: string;
   color?: string;
   size?: 'sm' | 'md' | 'lg';
+  style?: IconStyle;
   className?: string;
 }
 
-export function CategoryIcon({ icon, color, size = 'md', className = '' }: CategoryIconProps) {
+export function CategoryIcon({ icon, color, size = 'md', style = 'outline', className = '' }: CategoryIconProps) {
   const IconComponent = iconMap[icon];
   
-  const sizeClasses = {
-    sm: 'w-3.5 h-3.5',
-    md: 'w-5 h-5',
-    lg: 'w-6 h-6'
+  const sizeMap = {
+    sm: { class: 'w-3.5 h-3.5', stroke: 2 },
+    md: { class: 'w-5 h-5', stroke: 2 },
+    lg: { class: 'w-6 h-6', stroke: 1.75 }
   };
 
   if (!IconComponent) {
@@ -87,10 +96,17 @@ export function CategoryIcon({ icon, color, size = 'md', className = '' }: Categ
     return <span className={className}>{icon}</span>;
   }
 
+  const isFilled = style === 'filled';
+  
   return (
     <IconComponent 
-      className={`${sizeClasses[size]} ${className}`} 
-      style={color ? { color } : undefined}
+      className={`${sizeMap[size].class} ${className}`}
+      style={{ 
+        color: color || 'currentColor',
+        fill: isFilled ? (color || 'currentColor') : 'none',
+        fillOpacity: isFilled ? 0.2 : 0,
+      }}
+      strokeWidth={isFilled ? 2.5 : sizeMap[size].stroke}
     />
   );
 }

@@ -3,12 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
+export type IconStyle = 'outline' | 'filled';
+
 export interface Category {
   id: string;
   name: string;
   type: 'income' | 'expense';
   icon: string;
   color: string;
+  icon_style: IconStyle;
   is_default: boolean;
 }
 
@@ -115,7 +118,7 @@ export function useCategories() {
     }
   };
 
-  const addCategory = async (category: { name: string; type: 'income' | 'expense'; icon: string; color: string }) => {
+  const addCategory = async (category: { name: string; type: 'income' | 'expense'; icon: string; color: string; icon_style?: IconStyle }) => {
     if (!user) return;
     
     try {
@@ -124,6 +127,7 @@ export function useCategories() {
         .insert({
           user_id: user.id,
           ...category,
+          icon_style: category.icon_style || 'outline',
           is_default: false,
         })
         .select()
@@ -141,7 +145,7 @@ export function useCategories() {
     }
   };
 
-  const updateCategory = async (id: string, updates: { name?: string; icon?: string; color?: string }) => {
+  const updateCategory = async (id: string, updates: { name?: string; icon?: string; color?: string; icon_style?: IconStyle }) => {
     try {
       const { error } = await supabase
         .from('categories')

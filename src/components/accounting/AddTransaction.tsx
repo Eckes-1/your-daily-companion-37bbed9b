@@ -207,7 +207,7 @@ export function AddTransaction({ onAdd, onClose, editingTransaction, onUpdate }:
                       className="w-8 h-8 rounded-lg flex items-center justify-center"
                       style={{ backgroundColor: cat.color + '20' }}
                     >
-                      <CategoryIcon icon={cat.icon} color={cat.color} size="md" />
+                      <CategoryIcon icon={cat.icon} color={cat.color} size="md" style={cat.icon_style || 'outline'} />
                     </div>
                     <span className="text-[11px] font-medium text-foreground truncate w-full text-center">{cat.name}</span>
                   </button>
