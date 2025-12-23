@@ -7,6 +7,7 @@ import { useTags, Tag } from '@/hooks/useTags';
 import { useCategories, Category } from '@/hooks/useCategories';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ShareTransaction } from './ShareTransaction';
+import { CategoryIcon } from './CategoryIcon';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -106,11 +107,11 @@ export function TransactionCard({
             />
           ) : (
             <div className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0',
-              'shadow-md bg-gradient-to-br',
+              'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+              'shadow-md bg-gradient-to-br text-white',
               gradient
             )}>
-              {icon}
+              <CategoryIcon icon={icon} size="lg" className="text-white" />
             </div>
           )}
 

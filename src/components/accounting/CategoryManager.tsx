@@ -16,13 +16,13 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { CategoryIcon, CATEGORY_ICONS } from './CategoryIcon';
 
 interface CategoryManagerProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const ICONS = ['🍜', '🚗', '🛒', '🎮', '🏠', '💊', '📚', '💰', '🎁', '📈', '💼', '✈️', '🎬', '☕', '🏋️', '💇', '🐕', '📱', '💡', '📦'];
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#6b7280'];
 
 export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
@@ -32,7 +32,7 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   
   const [newName, setNewName] = useState('');
-  const [newIcon, setNewIcon] = useState('📦');
+  const [newIcon, setNewIcon] = useState('package');
   const [newColor, setNewColor] = useState('#6366f1');
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
@@ -92,7 +92,7 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
 
   const resetForm = () => {
     setNewName('');
-    setNewIcon('📦');
+    setNewIcon('package');
     setNewColor('#6366f1');
   };
 
@@ -110,12 +110,12 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
           className="flex items-center justify-between p-2 rounded-lg bg-secondary/50"
         >
           <div className="flex items-center gap-2">
-            <span 
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-base"
+            <div 
+              className="w-7 h-7 flex items-center justify-center rounded-lg"
               style={{ backgroundColor: category.color + '20' }}
             >
-              {category.icon}
-            </span>
+              <CategoryIcon icon={category.icon} color={category.color} size="sm" />
+            </div>
             <span className="font-medium text-foreground text-sm">{category.name}</span>
             {category.is_default && (
               <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
@@ -172,19 +172,19 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
         
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">图标</label>
-          <div className="flex flex-wrap gap-1.5">
-            {ICONS.map((icon) => (
+          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+            {CATEGORY_ICONS.map((icon) => (
               <button
                 key={icon}
                 type="button"
                 onClick={() => setNewIcon(icon)}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm transition-all ${
+                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
                   newIcon === icon
                     ? 'bg-primary text-primary-foreground ring-2 ring-primary'
                     : 'bg-secondary hover:bg-secondary/80'
                 }`}
               >
-                {icon}
+                <CategoryIcon icon={icon} size="sm" />
               </button>
             ))}
           </div>

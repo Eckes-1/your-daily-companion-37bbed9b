@@ -13,30 +13,30 @@ export interface Category {
 }
 
 const DEFAULT_EXPENSE_CATEGORIES = [
-  { name: '餐饮', icon: '🍜', color: '#ef4444' },
-  { name: '交通', icon: '🚗', color: '#f97316' },
-  { name: '购物', icon: '🛒', color: '#a855f7' },
-  { name: '娱乐', icon: '🎮', color: '#6366f1' },
-  { name: '住房', icon: '🏠', color: '#3b82f6' },
-  { name: '医疗', icon: '💊', color: '#ec4899' },
-  { name: '教育', icon: '📚', color: '#8b5cf6' },
-  { name: '日用', icon: '🧴', color: '#14b8a6' },
-  { name: '通讯', icon: '📱', color: '#06b6d4' },
-  { name: '人情', icon: '🎁', color: '#f43f5e' },
-  { name: '运动', icon: '⚽', color: '#84cc16' },
-  { name: '宠物', icon: '🐱', color: '#eab308' },
-  { name: '其他', icon: '📦', color: '#6b7280' },
+  { name: '餐饮', icon: 'utensils', color: '#ef4444' },
+  { name: '交通', icon: 'car', color: '#f97316' },
+  { name: '购物', icon: 'shopping-cart', color: '#a855f7' },
+  { name: '娱乐', icon: 'gamepad', color: '#6366f1' },
+  { name: '住房', icon: 'home', color: '#3b82f6' },
+  { name: '医疗', icon: 'pill', color: '#ec4899' },
+  { name: '教育', icon: 'book', color: '#8b5cf6' },
+  { name: '日用', icon: 'coffee', color: '#14b8a6' },
+  { name: '通讯', icon: 'smartphone', color: '#06b6d4' },
+  { name: '人情', icon: 'gift', color: '#f43f5e' },
+  { name: '运动', icon: 'dumbbell', color: '#84cc16' },
+  { name: '宠物', icon: 'dog', color: '#eab308' },
+  { name: '其他', icon: 'package', color: '#6b7280' },
 ];
 
 const DEFAULT_INCOME_CATEGORIES = [
-  { name: '工资', icon: '💰', color: '#22c55e' },
-  { name: '奖金', icon: '🏆', color: '#eab308' },
-  { name: '投资', icon: '📈', color: '#6366f1' },
-  { name: '兼职', icon: '💼', color: '#f59e0b' },
-  { name: '理财', icon: '💹', color: '#14b8a6' },
-  { name: '退款', icon: '💵', color: '#10b981' },
-  { name: '红包', icon: '🧧', color: '#ef4444' },
-  { name: '其他', icon: '📦', color: '#6b7280' },
+  { name: '工资', icon: 'wallet', color: '#22c55e' },
+  { name: '奖金', icon: 'trophy', color: '#eab308' },
+  { name: '投资', icon: 'trending-up', color: '#6366f1' },
+  { name: '兼职', icon: 'briefcase', color: '#f59e0b' },
+  { name: '理财', icon: 'piggy-bank', color: '#14b8a6' },
+  { name: '退款', icon: 'banknote', color: '#10b981' },
+  { name: '红包', icon: 'gift', color: '#ef4444' },
+  { name: '其他', icon: 'package', color: '#6b7280' },
 ];
 
 export function useCategories() {
