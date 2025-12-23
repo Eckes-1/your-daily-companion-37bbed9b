@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import * as XLSX from 'xlsx';
 
 interface ImportedTransaction {
   type: 'income' | 'expense';
@@ -27,34 +28,13 @@ interface ImportDataProps {
 export function ImportData({ onImportComplete }: ImportDataProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [parsing, setParsing] = useState(false);
   const [preview, setPreview] = useState<ImportedTransaction[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [fileName, setFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-
-  const parseCSV = (content: string): ImportedTransaction[] => {
-    const lines = content.trim().split('\n');
-    if (lines.length < 2) throw new Error('文件内容为空或格式不正确');
-    
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
-    const transactions: ImportedTransaction[] = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = parseCSVLine(lines[i]);
-      if (values.length < 4) continue;
-
-      const row: Record<string, string> = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index]?.trim().replace(/"/g, '') || '';
-      });
-
-      const transaction = mapToTransaction(row, headers);
-      if (transaction) transactions.push(transaction);
-    }
-
-    return transactions;
-  };
 
   const parseCSVLine = (line: string): string[] => {
     const result: string[] = [];
@@ -76,41 +56,133 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
     return result;
   };
 
-  const mapToTransaction = (row: Record<string, string>, headers: string[]): ImportedTransaction | null => {
-    // Support multiple column name formats
-    const typeKey = headers.find(h => ['type', '类型', '收支类型'].includes(h));
-    const amountKey = headers.find(h => ['amount', '金额', '数额'].includes(h));
-    const categoryKey = headers.find(h => ['category', '分类', '类别'].includes(h));
-    const descKey = headers.find(h => ['description', '描述', '备注', '说明'].includes(h));
-    const dateKey = headers.find(h => ['date', '日期', '时间'].includes(h));
-
-    if (!amountKey || !typeKey) return null;
-
-    const typeValue = row[typeKey]?.toLowerCase();
-    const type: 'income' | 'expense' = 
-      ['income', '收入', '入账'].includes(typeValue) ? 'income' : 'expense';
-
-    const amount = parseFloat(row[amountKey]?.replace(/[¥￥,]/g, '') || '0');
-    if (isNaN(amount) || amount <= 0) return null;
-
-    const category = row[categoryKey || ''] || '其他';
-    const description = row[descKey || ''] || '';
-    const dateStr = row[dateKey || ''] || new Date().toISOString().split('T')[0];
+  const parseDate = (value: any): string => {
+    if (!value) return new Date().toISOString().split('T')[0];
     
-    // Parse date
-    let date: string;
+    // Handle Excel serial date number
+    if (typeof value === 'number') {
+      try {
+        const excelDate = XLSX.SSF.parse_date_code(value);
+        if (excelDate) {
+          const date = new Date(excelDate.y, excelDate.m - 1, excelDate.d);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0];
+          }
+        }
+      } catch {
+        // Fall through to string parsing
+      }
+    }
+    
+    const str = String(value).trim();
+    
+    // Try different date formats
+    const formats = [
+      { regex: /^(\d{4})-(\d{1,2})-(\d{1,2})$/, order: ['y', 'm', 'd'] },
+      { regex: /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/, order: ['y', 'm', 'd'] },
+      { regex: /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, order: ['m', 'd', 'y'] },
+      { regex: /^(\d{1,2})-(\d{1,2})-(\d{4})$/, order: ['d', 'm', 'y'] },
+    ];
+    
+    for (const { regex, order } of formats) {
+      const match = str.match(regex);
+      if (match) {
+        const parts: Record<string, number> = {};
+        order.forEach((key, idx) => {
+          parts[key] = parseInt(match[idx + 1]);
+        });
+        const date = new Date(parts.y, parts.m - 1, parts.d);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split('T')[0];
+        }
+      }
+    }
+    
+    // Try native Date parsing
     try {
-      const parsed = new Date(dateStr);
-      if (isNaN(parsed.getTime())) {
-        date = new Date().toISOString().split('T')[0];
-      } else {
-        date = parsed.toISOString().split('T')[0];
+      const parsed = new Date(str);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString().split('T')[0];
       }
     } catch {
-      date = new Date().toISOString().split('T')[0];
+      // Return default date
+    }
+    
+    return new Date().toISOString().split('T')[0];
+  };
+
+  const mapToTransaction = (row: Record<string, any>, headers: string[]): ImportedTransaction | null => {
+    const findKey = (possibleNames: string[]) => {
+      return headers.find(h => 
+        possibleNames.some(name => h.toLowerCase().includes(name.toLowerCase()))
+      );
+    };
+
+    const typeKey = findKey(['type', '类型', '收支']);
+    const amountKey = findKey(['amount', '金额', '数额', '价格']);
+    const categoryKey = findKey(['category', '分类', '类别']);
+    const descKey = findKey(['description', '描述', '备注', '说明', 'memo', 'note']);
+    const dateKey = findKey(['date', '日期', '时间', 'time']);
+
+    if (!amountKey) return null;
+
+    const typeValue = row[typeKey || '']?.toString().toLowerCase() || '';
+    const type: 'income' | 'expense' = 
+      ['income', '收入', '入账', 'in', '+'].includes(typeValue) ? 'income' : 'expense';
+
+    const amountStr = row[amountKey]?.toString().replace(/[¥￥$,，]/g, '') || '0';
+    const amount = parseFloat(amountStr);
+    if (isNaN(amount) || amount <= 0) return null;
+
+    const category = row[categoryKey || '']?.toString() || '其他';
+    const description = row[descKey || '']?.toString() || '';
+    const date = parseDate(row[dateKey || '']);
+
+    return { type, amount: Math.abs(amount), category, description, date };
+  };
+
+  const parseCSV = (content: string): ImportedTransaction[] => {
+    const lines = content.trim().split(/\r?\n/);
+    if (lines.length < 2) throw new Error('文件内容为空或格式不正确');
+    
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const transactions: ImportedTransaction[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      if (values.length < 2) continue;
+
+      const row: Record<string, string> = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index]?.trim().replace(/"/g, '') || '';
+      });
+
+      const transaction = mapToTransaction(row, headers);
+      if (transaction) transactions.push(transaction);
     }
 
-    return { type, amount, category, description, date };
+    return transactions;
+  };
+
+  const parseExcel = (buffer: ArrayBuffer): ImportedTransaction[] => {
+    const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    
+    // Get data as JSON with headers
+    const data = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { raw: true, defval: '' });
+    
+    if (data.length === 0) throw new Error('Excel 文件为空');
+    
+    const headers = Object.keys(data[0] || {});
+    const transactions: ImportedTransaction[] = [];
+    
+    for (const row of data) {
+      const transaction = mapToTransaction(row, headers);
+      if (transaction) transactions.push(transaction);
+    }
+    
+    return transactions;
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,34 +191,43 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
 
     setError(null);
     setPreview([]);
+    setParsing(true);
+    setFileName(file.name);
 
     const extension = file.name.split('.').pop()?.toLowerCase();
     
     if (!['csv', 'xls', 'xlsx'].includes(extension || '')) {
-      setError('请选择 CSV 或 Excel 文件');
+      setError('请选择 CSV 或 Excel (.xls, .xlsx) 文件');
+      setParsing(false);
       return;
     }
 
     try {
+      let transactions: ImportedTransaction[] = [];
+      
       if (extension === 'csv') {
         const content = await file.text();
-        const transactions = parseCSV(content);
-        if (transactions.length === 0) {
-          throw new Error('未能解析出有效的账单记录');
-        }
-        setPreview(transactions);
+        transactions = parseCSV(content);
       } else {
-        // For Excel files, we'll parse as CSV-like format
-        // In a real implementation, you'd use a library like xlsx
-        setError('Excel 文件导入暂时仅支持 CSV 格式，请将 Excel 另存为 CSV 后导入');
+        // Parse Excel files
+        const buffer = await file.arrayBuffer();
+        transactions = parseExcel(buffer);
       }
+      
+      if (transactions.length === 0) {
+        throw new Error('未能解析出有效的账单记录，请检查文件格式');
+      }
+      
+      setPreview(transactions);
     } catch (err) {
+      console.error('Parse error:', err);
       setError(err instanceof Error ? err.message : '文件解析失败');
-    }
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    } finally {
+      setParsing(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -216,15 +297,15 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
               导入账单数据
             </DialogTitle>
             <DialogDescription>
-              支持导入 CSV 格式的历史账单数据
+              支持导入 CSV 和 Excel (.xls, .xlsx) 格式的历史账单数据
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
             {/* File Upload Area */}
             <div 
-              className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
-              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer ${parsing ? 'opacity-50 pointer-events-none' : ''}`}
+              onClick={() => !parsing && fileInputRef.current?.click()}
             >
               <input
                 ref={fileInputRef}
@@ -233,11 +314,21 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-              <p className="text-sm text-foreground font-medium">点击选择文件</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                支持 CSV 格式
-              </p>
+              {parsing ? (
+                <>
+                  <Loader2 className="w-10 h-10 mx-auto text-primary mb-3 animate-spin" />
+                  <p className="text-sm text-foreground font-medium">正在解析文件...</p>
+                  <p className="text-xs text-muted-foreground mt-1">{fileName}</p>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-sm text-foreground font-medium">点击选择文件</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    支持 CSV、XLS、XLSX 格式
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Format Guide */}
