@@ -84,8 +84,9 @@ serve(async (req) => {
     const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
     const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
-    // Generate unique filename
-    const filename = `category-icons/${categoryType}/${categoryName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
+    // Generate unique filename with sanitized name (no Chinese characters)
+    const uniqueId = crypto.randomUUID().slice(0, 8);
+    const filename = `category-icons/${categoryType}/${uniqueId}-${Date.now()}.png`;
 
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
