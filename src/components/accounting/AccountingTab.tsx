@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Plus, Wallet, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
+import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3 } from 'lucide-react';
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { TransactionCard } from './TransactionCard';
 import { AddTransaction } from './AddTransaction';
+import { AccountingCharts } from './AccountingCharts';
 
 export function AccountingTab() {
   const { transactions, loading, addTransaction, deleteTransaction } = useTransactions();
   const [isAdding, setIsAdding] = useState(false);
+  const [showCharts, setShowCharts] = useState(true);
 
   const handleAdd = async (data: Omit<Transaction, 'id'>) => {
     await addTransaction(data);
@@ -58,7 +60,21 @@ export function AccountingTab() {
             </div>
           </div>
         </div>
+        
+        {/* 图表切换按钮 */}
+        {transactions.length > 0 && (
+          <button
+            onClick={() => setShowCharts(!showCharts)}
+            className="w-full mt-4 flex items-center justify-center gap-2 py-2 text-sm text-primary hover:text-primary/80 transition-colors"
+          >
+            <BarChart3 className="w-4 h-4" />
+            {showCharts ? '隐藏统计图表' : '显示统计图表'}
+          </button>
+        )}
       </div>
+
+      {/* 统计图表 */}
+      {showCharts && <AccountingCharts transactions={transactions} />}
 
       {transactions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
