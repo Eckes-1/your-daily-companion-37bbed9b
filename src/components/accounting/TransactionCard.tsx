@@ -1,4 +1,4 @@
-import { Trash2, Edit2, Image, Share2 } from 'lucide-react';
+import { Trash2, Edit2, Image, Share2, MoreHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -6,6 +6,13 @@ import { useState, useEffect } from 'react';
 import { useTags, Tag } from '@/hooks/useTags';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ShareTransaction } from './ShareTransaction';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
 interface TransactionDisplay {
   id: string;
   type: 'income' | 'expense';
@@ -25,15 +32,15 @@ interface TransactionCardProps {
   onSelect?: (id: string) => void;
 }
 
-const categoryIcons: Record<string, string> = {
-  food: '🍜',
-  transport: '🚗',
-  shopping: '🛍️',
-  entertainment: '🎮',
-  salary: '💰',
-  investment: '📈',
-  gift: '🎁',
-  other: '📝',
+const categoryConfig: Record<string, { icon: string; bg: string; color: string }> = {
+  food: { icon: '🍜', bg: 'bg-orange-100 dark:bg-orange-900/30', color: 'text-orange-600 dark:text-orange-400' },
+  transport: { icon: '🚗', bg: 'bg-blue-100 dark:bg-blue-900/30', color: 'text-blue-600 dark:text-blue-400' },
+  shopping: { icon: '🛍️', bg: 'bg-pink-100 dark:bg-pink-900/30', color: 'text-pink-600 dark:text-pink-400' },
+  entertainment: { icon: '🎮', bg: 'bg-purple-100 dark:bg-purple-900/30', color: 'text-purple-600 dark:text-purple-400' },
+  salary: { icon: '💰', bg: 'bg-green-100 dark:bg-green-900/30', color: 'text-green-600 dark:text-green-400' },
+  investment: { icon: '📈', bg: 'bg-teal-100 dark:bg-teal-900/30', color: 'text-teal-600 dark:text-teal-400' },
+  gift: { icon: '🎁', bg: 'bg-red-100 dark:bg-red-900/30', color: 'text-red-600 dark:text-red-400' },
+  other: { icon: '📝', bg: 'bg-gray-100 dark:bg-gray-800/50', color: 'text-gray-600 dark:text-gray-400' },
 };
 
 export function TransactionCard({ 
@@ -59,107 +66,124 @@ export function TransactionCard({
     }
   };
 
+  const config = categoryConfig[transaction.category] || categoryConfig.other;
+
   return (
     <>
       <div 
         className={cn(
-          'glass-card p-4 animate-fade-in group cursor-pointer',
-          transaction.type === 'expense' ? 'border-l-4 border-l-destructive/50' : 'border-l-4 border-l-accent/50',
-          isSelected && 'ring-2 ring-primary bg-primary/5'
+          'relative rounded-2xl p-4 transition-all duration-200 cursor-pointer',
+          'bg-card/80 backdrop-blur-sm border border-border/50',
+          'hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5',
+          isSelected && 'ring-2 ring-primary bg-primary/5 border-primary/30'
         )}
         onClick={handleCardClick}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            {selectionMode ? (
-              <Checkbox 
-                checked={isSelected}
-                onCheckedChange={() => onSelect?.(transaction.id)}
-                onClick={(e) => e.stopPropagation()}
-                className="shrink-0"
-                aria-label={isSelected ? "取消选择该账单" : "选择该账单"}
-              />
-            ) : (
-              <span className="text-2xl shrink-0">
-                {categoryIcons[transaction.category] || categoryIcons.other}
-              </span>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="font-medium text-foreground truncate">
-                {transaction.description || transaction.category}
-              </p>
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-xs text-muted-foreground">
-                  {format(new Date(transaction.date), 'MM月dd日', { locale: zhCN })}
-                </p>
-                {transaction.image_url && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowImage(true);
-                    }}
-                    className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"
-                  >
-                    <Image className="w-3 h-3" />
-                    <span>凭证</span>
-                  </button>
-                )}
-              </div>
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {tags.map(tag => (
-                    <span
-                      key={tag.id}
-                      className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
-                      style={{ backgroundColor: tag.color }}
-                    >
-                      {tag.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-1 shrink-0">
-            <span className={cn(
-              'font-bold text-lg',
-              transaction.type === 'expense' ? 'text-destructive' : 'text-accent'
+        <div className="flex items-center gap-3">
+          {/* Selection checkbox or Category icon */}
+          {selectionMode ? (
+            <Checkbox 
+              checked={isSelected}
+              onCheckedChange={() => onSelect?.(transaction.id)}
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0 w-5 h-5"
+              aria-label={isSelected ? "取消选择该账单" : "选择该账单"}
+            />
+          ) : (
+            <div className={cn(
+              'w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0',
+              'shadow-sm',
+              config.bg
             )}>
-              {transaction.type === 'expense' ? '-' : '+'}¥{transaction.amount.toFixed(2)}
-            </span>
-            {!selectionMode && (
-              <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowShare(true);
-                  }}
-                  className="p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100"
-                >
-                  <Share2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(transaction.id);
-                  }}
-                  className="p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(transaction.id);
-                  }}
-                  className="p-2 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </>
+              {config.icon}
+            </div>
+          )}
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-foreground truncate text-[15px]">
+                  {transaction.description || transaction.category}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(transaction.date), 'MM月dd日', { locale: zhCN })}
+                  </span>
+                  {transaction.image_url && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowImage(true);
+                      }}
+                      className={cn(
+                        'flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md',
+                        'bg-primary/10 text-primary hover:bg-primary/20 transition-colors'
+                      )}
+                    >
+                      <Image className="w-3 h-3" />
+                      <span>凭证</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Amount */}
+              <div className="text-right shrink-0">
+                <span className={cn(
+                  'font-bold text-lg tabular-nums',
+                  transaction.type === 'expense' 
+                    ? 'text-destructive' 
+                    : 'text-emerald-500 dark:text-emerald-400'
+                )}>
+                  {transaction.type === 'expense' ? '-' : '+'}¥{transaction.amount.toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {/* Tags */}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {tags.map(tag => (
+                  <span
+                    key={tag.id}
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium text-white shadow-sm"
+                    style={{ backgroundColor: tag.color }}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
+
+          {/* Actions dropdown */}
+          {!selectionMode && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0">
+                  <MoreHorizontal className="w-5 h-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-32">
+                <DropdownMenuItem onClick={() => setShowShare(true)}>
+                  <Share2 className="w-4 h-4 mr-2" />
+                  分享
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEdit(transaction.id)}>
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  编辑
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => onDelete(transaction.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  删除
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
