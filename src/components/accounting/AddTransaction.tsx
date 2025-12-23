@@ -8,6 +8,7 @@ import { useTags, Tag } from '@/hooks/useTags';
 import { ReceiptScanner } from './ReceiptScanner';
 import { TagSelector } from './TagSelector';
 import { CategoryManager } from './CategoryManager';
+import { CategoryIcon } from './CategoryIcon';
 
 interface TransactionData {
   type: 'income' | 'expense';
@@ -202,7 +203,12 @@ export function AddTransaction({ onAdd, onClose, editingTransaction, onUpdate }:
                         : 'bg-muted/50 border-2 border-transparent'
                     )}
                   >
-                    <span className="text-xl">{cat.icon}</span>
+                    <div 
+                      className="w-8 h-8 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: cat.color + '20' }}
+                    >
+                      <CategoryIcon icon={cat.icon} color={cat.color} size="md" />
+                    </div>
                     <span className="text-[11px] font-medium text-foreground truncate w-full text-center">{cat.name}</span>
                   </button>
                 ))}
