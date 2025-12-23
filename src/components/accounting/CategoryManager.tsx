@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Tag, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Tag, X, Sparkles, Loader2 } from 'lucide-react';
 import { useCategories, Category } from '@/hooks/useCategories';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CategoryManagerProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
   const [activeTab, setActiveTab] = useState<'expense' | 'income'>('expense');
   const [isAdding, setIsAdding] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [generatingIconId, setGeneratingIconId] = useState<string | null>(null);
   
   const [newName, setNewName] = useState('');
   const [newIcon, setNewIcon] = useState('📦');
@@ -76,6 +78,33 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
     await deleteCategory(category.id);
   };
 
+  const generateIcon = async (category: Category) => {
+    setGeneratingIconId(category.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-category-icon', {
+        body: {
+          categoryName: category.name,
+          categoryType: category.type,
+          categoryColor: category.color,
+        },
+      });
+
+      if (error) throw error;
+      
+      if (data?.iconUrl) {
+        await updateCategory(category.id, { icon_url: data.iconUrl });
+        toast.success(`已为"${category.name}"生成图标`);
+      } else {
+        throw new Error('No icon URL returned');
+      }
+    } catch (error) {
+      console.error('Error generating icon:', error);
+      toast.error('生成图标失败，请重试');
+    } finally {
+      setGeneratingIconId(null);
+    }
+  };
+
   const startEdit = (category: Category) => {
     setEditingCategory(category);
     setNewName(category.name);
@@ -110,12 +139,20 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
           className="flex items-center justify-between p-2 rounded-lg bg-secondary/50"
         >
           <div className="flex items-center gap-2">
-            <span 
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-base"
-              style={{ backgroundColor: category.color + '20' }}
-            >
-              {category.icon}
-            </span>
+            {category.icon_url ? (
+              <img 
+                src={category.icon_url} 
+                alt={category.name}
+                className="w-7 h-7 rounded-lg object-cover"
+              />
+            ) : (
+              <span 
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-base"
+                style={{ backgroundColor: category.color + '20' }}
+              >
+                {category.icon}
+              </span>
+            )}
             <span className="font-medium text-foreground text-sm">{category.name}</span>
             {category.is_default && (
               <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
@@ -124,6 +161,20 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
             )}
           </div>
           <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-primary hover:text-primary"
+              onClick={() => generateIcon(category)}
+              disabled={generatingIconId === category.id}
+              title="AI生成图标"
+            >
+              {generatingIconId === category.id ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+            </Button>
             <Button
               variant="ghost"
               size="icon"

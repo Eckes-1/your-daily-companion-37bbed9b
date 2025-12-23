@@ -10,6 +10,7 @@ export interface Category {
   icon: string;
   color: string;
   is_default: boolean;
+  icon_url?: string | null;
 }
 
 const DEFAULT_EXPENSE_CATEGORIES = [
@@ -141,7 +142,7 @@ export function useCategories() {
     }
   };
 
-  const updateCategory = async (id: string, updates: { name?: string; icon?: string; color?: string }) => {
+  const updateCategory = async (id: string, updates: { name?: string; icon?: string; color?: string; icon_url?: string | null }) => {
     try {
       const { error } = await supabase
         .from('categories')
