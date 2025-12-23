@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Minus, Loader2 } from 'lucide-react';
+import { X, Plus, Minus, Loader2, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -7,6 +7,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useTags, Tag } from '@/hooks/useTags';
 import { ReceiptScanner } from './ReceiptScanner';
 import { TagSelector } from './TagSelector';
+import { CategoryManager } from './CategoryManager';
 
 interface TransactionData {
   type: 'income' | 'expense';
@@ -34,6 +35,7 @@ export function AddTransaction({ onAdd, onClose, editingTransaction, onUpdate }:
   const [description, setDescription] = useState(editingTransaction?.description || '');
   const [imageUrl, setImageUrl] = useState<string | null>(editingTransaction?.image_url || null);
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
 
   // Load existing tags when editing
   useEffect(() => {
@@ -172,29 +174,41 @@ export function AddTransaction({ onAdd, onClose, editingTransaction, onUpdate }:
           </div>
 
           {/* Category Grid */}
-          {loading ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">分类</span>
+              <button
+                onClick={() => setShowCategoryManager(true)}
+                className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"
+              >
+                <Settings2 className="w-3 h-3" />
+                管理
+              </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto">
-              {currentCategories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setCategory(cat.name)}
-                  className={cn(
-                    'flex flex-col items-center gap-0.5 p-2 rounded-lg transition-all',
-                    category === cat.name 
-                      ? 'bg-primary/10 border-2 border-primary' 
-                      : 'bg-muted/50 border-2 border-transparent'
-                  )}
-                >
-                  <span className="text-xl">{cat.icon}</span>
-                  <span className="text-[11px] font-medium text-foreground truncate w-full text-center">{cat.name}</span>
-                </button>
-              ))}
-            </div>
-          )}
+            {loading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto">
+                {currentCategories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setCategory(cat.name)}
+                    className={cn(
+                      'flex flex-col items-center gap-0.5 p-2 rounded-lg transition-all',
+                      category === cat.name 
+                        ? 'bg-primary/10 border-2 border-primary' 
+                        : 'bg-muted/50 border-2 border-transparent'
+                    )}
+                  >
+                    <span className="text-xl">{cat.icon}</span>
+                    <span className="text-[11px] font-medium text-foreground truncate w-full text-center">{cat.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Description */}
           <Input
@@ -215,6 +229,12 @@ export function AddTransaction({ onAdd, onClose, editingTransaction, onUpdate }:
           </div>
         </div>
       </div>
+
+      {/* Category Manager Dialog */}
+      <CategoryManager
+        isOpen={showCategoryManager}
+        onClose={() => setShowCategoryManager(false)}
+      />
     </div>
   );
 }
