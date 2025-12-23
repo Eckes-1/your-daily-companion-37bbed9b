@@ -25,6 +25,7 @@ interface ImportedTransaction {
   category: string;
   description: string;
   date: string;
+  image_url?: string;
 }
 
 interface ImportDataProps {
@@ -33,10 +34,10 @@ interface ImportDataProps {
 
 // Template data
 const TEMPLATE_DATA = [
-  { '日期': '2024-01-15', '类型': '支出', '金额': 35.5, '分类': '餐饮', '备注': '午餐' },
-  { '日期': '2024-01-15', '类型': '支出', '金额': 200, '分类': '交通', '备注': '打车' },
-  { '日期': '2024-01-16', '类型': '收入', '金额': 8000, '分类': '工资', '备注': '1月工资' },
-  { '日期': '2024-01-17', '类型': '支出', '金额': 66.8, '分类': '购物', '备注': '日用品' },
+  { '日期': '2024-01-15', '类型': '支出', '金额': 35.5, '分类': '餐饮', '备注': '午餐', '图片链接': '' },
+  { '日期': '2024-01-15', '类型': '支出', '金额': 200, '分类': '交通', '备注': '打车', '图片链接': 'https://example.com/receipt.jpg' },
+  { '日期': '2024-01-16', '类型': '收入', '金额': 8000, '分类': '工资', '备注': '1月工资', '图片链接': '' },
+  { '日期': '2024-01-17', '类型': '支出', '金额': 66.8, '分类': '购物', '备注': '日用品', '图片链接': '' },
 ];
 
 export function ImportData({ onImportComplete }: ImportDataProps) {
@@ -181,6 +182,7 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
     const categoryKey = findKey(['category', '分类', '类别']);
     const descKey = findKey(['description', '描述', '备注', '说明', 'memo', 'note']);
     const dateKey = findKey(['date', '日期', '时间', 'time']);
+    const imageKey = findKey(['image', 'image_url', '图片', '图片链接', '凭证', 'receipt']);
 
     if (!amountKey) return null;
 
@@ -195,8 +197,9 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
     const category = row[categoryKey || '']?.toString() || '其他';
     const description = row[descKey || '']?.toString() || '';
     const date = parseDate(row[dateKey || '']);
+    const image_url = row[imageKey || '']?.toString().trim() || undefined;
 
-    return { type, amount: Math.abs(amount), category, description, date };
+    return { type, amount: Math.abs(amount), category, description, date, image_url };
   };
 
   const parseCSV = (content: string): ImportedTransaction[] => {
@@ -300,6 +303,7 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
         category: t.category,
         description: t.description,
         date: t.date,
+        image_url: t.image_url || null,
       }));
 
       const { error: insertError } = await supabase
@@ -423,6 +427,7 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
                 <li>金额：数字金额</li>
                 <li>分类：分类名称</li>
                 <li>备注：可选</li>
+                <li>图片链接：可选，图片 URL</li>
               </ul>
             </div>
 

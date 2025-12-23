@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Tag, Bell, PieChart, Search, X } from 'lucide-react';
+import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Tag, Bell, PieChart, Search, X, CheckSquare } from 'lucide-react';
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { useTags } from '@/hooks/useTags';
 import { TransactionCard } from './TransactionCard';
@@ -13,10 +13,12 @@ import { CategoryManager } from './CategoryManager';
 import { ReminderSettings } from './ReminderSettings';
 import { StatisticsReport } from './StatisticsReport';
 import { TagFilter } from './TagFilter';
+import { BatchActions } from './BatchActions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export function AccountingTab() {
   const { transactions, loading, addTransaction, updateTransaction, deleteTransaction, refetch } = useTransactions();
@@ -30,6 +32,9 @@ export function AccountingTab() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [transactionTagMap, setTransactionTagMap] = useState<Record<string, string[]>>({});
   const [editingTransaction, setEditingTransaction] = useState<(Transaction & { id: string }) | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const { toast } = useToast();
 
   // Fetch all transaction tags for filtering
   useEffect(() => {
@@ -74,6 +79,39 @@ export function AccountingTab() {
   const handleCloseEditor = () => {
     setIsAdding(false);
     setEditingTransaction(null);
+  };
+
+  const toggleSelectMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedIds([]);
+  };
+
+  const toggleSelectTransaction = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBatchDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      toast({ title: `已删除 ${selectedIds.length} 条记录` });
+      refetch();
+    } catch (error) {
+      console.error('Error batch deleting:', error);
+      toast({ title: '删除失败', variant: 'destructive' });
+      throw error;
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds([]);
+    setSelectionMode(false);
   };
 
   // 过滤后的交易记录（日期 + 搜索 + 标签）
@@ -183,6 +221,15 @@ export function AccountingTab() {
         </div>
         <div className="flex items-center gap-2">
           <Button
+            variant={selectionMode ? "default" : "outline"}
+            size="sm"
+            onClick={toggleSelectMode}
+            className="gap-1"
+          >
+            <CheckSquare className="w-4 h-4" />
+            <span className="hidden sm:inline">批量</span>
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             onClick={() => setShowCategoryManager(true)}
@@ -289,6 +336,9 @@ export function AccountingTab() {
               }} 
               onDelete={deleteTransaction}
               onEdit={handleEdit}
+              selectionMode={selectionMode}
+              isSelected={selectedIds.includes(transaction.id)}
+              onSelect={toggleSelectTransaction}
             />
           ))}
         </div>
@@ -335,6 +385,14 @@ export function AccountingTab() {
         transactions={transactions}
         isOpen={showStatistics} 
         onClose={() => setShowStatistics(false)} 
+      />
+
+      {/* 批量操作栏 */}
+      <BatchActions
+        selectedIds={selectedIds}
+        onClearSelection={handleClearSelection}
+        onDelete={handleBatchDelete}
+        onActionComplete={refetch}
       />
     </div>
   );

@@ -22,6 +22,7 @@ export function ExportData({ transactions, dateRange }: ExportDataProps) {
     分类: t.category,
     金额: t.amount,
     描述: t.description || '',
+    图片链接: t.image_url || '',
   });
 
   const exportToCSV = () => {
