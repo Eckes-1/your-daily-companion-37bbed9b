@@ -1,19 +1,33 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Plus, CheckSquare, Loader2 } from 'lucide-react';
 import { useTodos, Todo } from '@/hooks/useTodos';
 import { TodoItem } from './TodoItem';
 import { AddTodo } from './AddTodo';
+import { PullIndicator, LoadMoreIndicator } from '@/components/ui/PullToRefresh';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 export function TodoTab() {
-  const { todos, loading, addTodo, toggleTodo, deleteTodo } = useTodos();
+  const { todos, loading, addTodo, toggleTodo, deleteTodo, refetch } = useTodos();
   const [isAdding, setIsAdding] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+  const { containerRef, pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: handleRefresh });
+
+  const pendingTodos = todos.filter(t => !t.completed);
+  const completedTodos = todos.filter(t => t.completed);
+  const allTodoItems = [...pendingTodos, ...completedTodos];
+  const { displayedItems, hasMore, isLoadingMore, loadMoreRef } = useInfiniteScroll({ items: allTodoItems, pageSize: 20 });
+
+  const displayedPending = displayedItems.filter(t => !t.completed);
+  const displayedCompleted = displayedItems.filter(t => t.completed);
 
   const handleAdd = async (data: { title: string; priority: Todo['priority'] }) => {
     await addTodo(data.title, data.priority);
   };
 
-  const pendingTodos = todos.filter(t => !t.completed);
-  const completedTodos = todos.filter(t => t.completed);
   const completionRate = todos.length > 0 
     ? Math.round((completedTodos.length / todos.length) * 100) 
     : 0;
@@ -27,7 +41,9 @@ export function TodoTab() {
   }
 
   return (
-    <div className="pb-20">
+    <div ref={containerRef} className="pb-20 h-full overflow-auto">
+      <PullIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
+      
       {/* Progress */}
       {todos.length > 0 && (
         <div className="px-4 mb-6">
@@ -61,10 +77,10 @@ export function TodoTab() {
         </div>
       ) : (
         <div className="px-4 space-y-6">
-          {pendingTodos.length > 0 && (
+          {displayedPending.length > 0 && (
             <div className="space-y-3">
               <h3 className="font-semibold text-foreground">待完成</h3>
-              {pendingTodos.map((todo) => (
+              {displayedPending.map((todo) => (
                 <TodoItem 
                   key={todo.id} 
                   todo={{
@@ -81,10 +97,10 @@ export function TodoTab() {
             </div>
           )}
 
-          {completedTodos.length > 0 && (
+          {displayedCompleted.length > 0 && (
             <div className="space-y-3">
               <h3 className="font-semibold text-muted-foreground">已完成</h3>
-              {completedTodos.map((todo) => (
+              {displayedCompleted.map((todo) => (
                 <TodoItem 
                   key={todo.id} 
                   todo={{
@@ -100,6 +116,10 @@ export function TodoTab() {
               ))}
             </div>
           )}
+          
+          <div ref={loadMoreRef}>
+            <LoadMoreIndicator isLoading={isLoadingMore} hasMore={hasMore} />
+          </div>
         </div>
       )}
 
