@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Tag, Bell, PieChart } from 'lucide-react';
+import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Tag, Bell, PieChart, Search, X } from 'lucide-react';
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { TransactionCard } from './TransactionCard';
 import { AddTransaction } from './AddTransaction';
@@ -11,6 +11,7 @@ import { CategoryManager } from './CategoryManager';
 import { ReminderSettings } from './ReminderSettings';
 import { StatisticsReport } from './StatisticsReport';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
 export function AccountingTab() {
@@ -21,6 +22,7 @@ export function AccountingTab() {
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showReminderSettings, setShowReminderSettings] = useState(false);
   const [showStatistics, setShowStatistics] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [editingTransaction, setEditingTransaction] = useState<(Transaction & { id: string }) | null>(null);
 
   const handleAdd = async (data: Omit<Transaction, 'id'>) => {
@@ -44,18 +46,33 @@ export function AccountingTab() {
     setEditingTransaction(null);
   };
 
-  // 过滤后的交易记录
+  // 过滤后的交易记录（日期 + 搜索）
   const filteredTransactions = useMemo(() => {
-    if (!dateRange) return transactions;
+    let result = transactions;
     
-    return transactions.filter(t => {
-      const date = new Date(t.date);
-      return (
-        isAfter(date, startOfDay(dateRange.from)) &&
-        isBefore(date, endOfDay(dateRange.to))
+    // 日期筛选
+    if (dateRange) {
+      result = result.filter(t => {
+        const date = new Date(t.date);
+        return (
+          isAfter(date, startOfDay(dateRange.from)) &&
+          isBefore(date, endOfDay(dateRange.to))
+        );
+      });
+    }
+    
+    // 关键词搜索
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(t => 
+        t.description?.toLowerCase().includes(query) ||
+        t.category.toLowerCase().includes(query) ||
+        t.amount.toString().includes(query)
       );
-    });
-  }, [transactions, dateRange]);
+    }
+    
+    return result;
+  }, [transactions, dateRange, searchQuery]);
 
   // 当月交易（用于预算计算）
   const currentMonthTransactions = useMemo(() => {
@@ -93,6 +110,27 @@ export function AccountingTab() {
 
   return (
     <div className="pb-20">
+      {/* 搜索栏 */}
+      <div className="px-4 mb-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="搜索账单（备注、分类、金额）"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 pr-9 bg-muted border-0"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-background/50"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* 工具栏 */}
       <div className="px-4 mb-4 flex items-center justify-between gap-2">
         <DateFilter 
