@@ -4,6 +4,31 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import JSZip from 'jszip';
 
+let cachedChineseFontBase64: string | null = null;
+
+const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+};
+
+const loadChinesePdfFontBase64 = async () => {
+  if (cachedChineseFontBase64) return cachedChineseFontBase64;
+
+  const url = `${import.meta.env.BASE_URL}fonts/NotoSansSC-Regular.ttf`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('中文字体加载失败');
+
+  const buf = await res.arrayBuffer();
+  cachedChineseFontBase64 = arrayBufferToBase64(buf);
+  return cachedChineseFontBase64;
+};
+
+
 interface UseExportDataProps {
   transactions: Transaction[];
 }
@@ -232,71 +257,34 @@ export function useExportData({ transactions }: UseExportDataProps) {
 
       const doc = new jsPDF();
 
-      // 尝试加载中文字体
-      let fontLoaded = false;
-      try {
-        const fontUrl = 'https://cdn.jsdelivr.net/npm/source-han-sans-sc@1.0.0/SourceHanSansSC-Regular.otf';
-        const fontResponse = await fetch(fontUrl);
-        if (fontResponse.ok) {
-          const fontBuffer = await fontResponse.arrayBuffer();
-          const fontBase64 = btoa(
-            new Uint8Array(fontBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-          );
-          doc.addFileToVFS('SourceHanSansSC.otf', fontBase64);
-          doc.addFont('SourceHanSansSC.otf', 'SourceHanSansSC', 'normal');
-          doc.setFont('SourceHanSansSC');
-          fontLoaded = true;
-        }
-      } catch (fontError) {
-        console.warn('Font loading failed, using fallback', fontError);
-      }
+      // 强制中文：字体加载失败则直接报错，不做英文回退
+      const fontBase64 = await loadChinesePdfFontBase64();
+      const FONT_FILE = 'NotoSansSC-Regular.ttf';
+      const FONT_NAME = 'NotoSansSC';
+      doc.addFileToVFS(FONT_FILE, fontBase64);
+      doc.addFont(FONT_FILE, FONT_NAME, 'normal');
+      doc.addFont(FONT_FILE, FONT_NAME, 'bold');
+      doc.setFont(FONT_NAME, 'normal');
 
       // 计算汇总
       const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
       const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
       const balance = totalIncome - totalExpense;
 
-      // 使用英文或中文文本（取决于字体加载状态）
-      const labels = fontLoaded ? {
-        title: '记账报表',
-        generated: '生成时间',
-        summary: '收支汇总',
-        income: '总收入',
-        expense: '总支出',
-        balance: '结余',
-        count: '交易笔数',
-        categoryHeaders: ['分类', '收入', '支出', '笔数'],
-        detailHeaders: ['日期', '类型', '分类', '金额', '备注'],
-        incomeType: '收入',
-        expenseType: '支出',
-      } : {
-        title: 'Transaction Report',
-        generated: 'Generated',
-        summary: 'Summary',
-        income: 'Income',
-        expense: 'Expense',
-        balance: 'Balance',
-        count: 'Transactions',
-        categoryHeaders: ['Category', 'Income', 'Expense', 'Count'],
-        detailHeaders: ['Date', 'Type', 'Category', 'Amount', 'Note'],
-        incomeType: 'Income',
-        expenseType: 'Expense',
-      };
-
       // 标题
       doc.setFontSize(18);
-      doc.text(labels.title, 14, 20);
+      doc.text('记账报表', 14, 20);
       doc.setFontSize(10);
-      doc.text(`${labels.generated}: ${format(new Date(), 'yyyy-MM-dd HH:mm')}`, 14, 28);
+      doc.text(`生成时间：${format(new Date(), 'yyyy-MM-dd HH:mm')}`, 14, 28);
 
       // 汇总
       doc.setFontSize(12);
-      doc.text(labels.summary, 14, 40);
+      doc.text('收支汇总', 14, 40);
       doc.setFontSize(10);
-      doc.text(`${labels.income}: ${totalIncome.toFixed(2)}`, 14, 48);
-      doc.text(`${labels.expense}: ${totalExpense.toFixed(2)}`, 14, 54);
-      doc.text(`${labels.balance}: ${balance.toFixed(2)}`, 14, 60);
-      doc.text(`${labels.count}: ${transactions.length}`, 14, 66);
+      doc.text(`总收入：¥${totalIncome.toFixed(2)}`, 14, 48);
+      doc.text(`总支出：¥${totalExpense.toFixed(2)}`, 14, 54);
+      doc.text(`结余：¥${balance.toFixed(2)}`, 14, 60);
+      doc.text(`交易笔数：${transactions.length}`, 14, 66);
 
       // 分类汇总
       const categoryData: Record<string, { income: number; expense: number; count: number }> = {};
@@ -313,49 +301,61 @@ export function useExportData({ transactions }: UseExportDataProps) {
       });
 
       const categoryTableData = Object.entries(categoryData).map(([cat, data]) => [
-        fontLoaded ? cat : (cat || 'Other'),
-        data.income.toFixed(2),
-        data.expense.toFixed(2),
+        cat,
+        `¥${data.income.toFixed(2)}`,
+        `¥${data.expense.toFixed(2)}`,
         data.count.toString(),
       ]);
 
-      const tableStyles = fontLoaded 
-        ? { font: 'SourceHanSansSC', fontStyle: 'normal' as const }
-        : {};
-
       autoTable(doc, {
         startY: 75,
-        head: [labels.categoryHeaders],
+        head: [['分类', '收入', '支出', '笔数']],
         body: categoryTableData,
         theme: 'striped',
-        headStyles: { fillColor: [255, 107, 53], ...tableStyles },
-        styles: { fontSize: 10, ...tableStyles },
+        headStyles: {
+          fillColor: [255, 107, 53],
+          font: FONT_NAME,
+          fontStyle: 'bold',
+        },
+        styles: {
+          font: FONT_NAME,
+          fontStyle: 'normal',
+          fontSize: 10,
+        },
       });
 
       // 明细表
       const detailData = transactions.map(t => [
         format(new Date(t.date), 'yyyy-MM-dd'),
-        t.type === 'income' ? labels.incomeType : labels.expenseType,
-        fontLoaded ? t.category : (t.category || 'Other'),
-        t.amount.toFixed(2),
-        fontLoaded ? (t.description || '-') : (t.description?.replace(/[^\x00-\x7F]/g, '') || '-'),
+        t.type === 'income' ? '收入' : '支出',
+        t.category,
+        `¥${t.amount.toFixed(2)}`,
+        t.description || '-',
       ]);
 
       const finalY = (doc as any).lastAutoTable?.finalY || 120;
       autoTable(doc, {
         startY: finalY + 10,
-        head: [labels.detailHeaders],
+        head: [['日期', '类型', '分类', '金额', '备注']],
         body: detailData,
         theme: 'grid',
-        headStyles: { fillColor: [100, 100, 100], ...tableStyles },
-        styles: { fontSize: 8, ...tableStyles },
+        headStyles: {
+          fillColor: [100, 100, 100],
+          font: FONT_NAME,
+          fontStyle: 'bold',
+        },
+        styles: {
+          font: FONT_NAME,
+          fontStyle: 'normal',
+          fontSize: 8,
+        },
       });
 
-      doc.save(`Report_${format(new Date(), 'yyyyMMdd')}.pdf`);
-      toast.success(fontLoaded ? 'PDF报表导出成功' : 'PDF exported (English fallback)');
+      doc.save(`记账报表_${format(new Date(), 'yyyyMMdd')}.pdf`);
+      toast.success('PDF报表导出成功');
     } catch (error) {
       console.error('PDF export error:', error);
-      toast.error('PDF导出失败');
+      toast.error(error instanceof Error ? error.message : 'PDF导出失败');
     } finally {
       setExporting(false);
     }
