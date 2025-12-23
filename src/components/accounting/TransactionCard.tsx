@@ -2,7 +2,8 @@ import { Trash2, Edit2, Image } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useTags, Tag } from '@/hooks/useTags';
 
 interface TransactionDisplay {
   id: string;
@@ -33,6 +34,12 @@ const categoryIcons: Record<string, string> = {
 
 export function TransactionCard({ transaction, onDelete, onEdit }: TransactionCardProps) {
   const [showImage, setShowImage] = useState(false);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const { getTransactionTags } = useTags();
+
+  useEffect(() => {
+    getTransactionTags(transaction.id).then(setTags);
+  }, [transaction.id]);
 
   return (
     <>
@@ -51,7 +58,7 @@ export function TransactionCard({ transaction, onDelete, onEdit }: TransactionCa
               <p className="font-medium text-foreground truncate">
                 {transaction.description || transaction.category}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-xs text-muted-foreground">
                   {format(new Date(transaction.date), 'MM月dd日', { locale: zhCN })}
                 </p>
@@ -61,10 +68,23 @@ export function TransactionCard({ transaction, onDelete, onEdit }: TransactionCa
                     className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"
                   >
                     <Image className="w-3 h-3" />
-                    <span>查看凭证</span>
+                    <span>凭证</span>
                   </button>
                 )}
               </div>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {tags.map(tag => (
+                    <span
+                      key={tag.id}
+                      className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+                      style={{ backgroundColor: tag.color }}
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           

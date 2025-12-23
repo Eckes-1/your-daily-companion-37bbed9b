@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useCategories } from '@/hooks/useCategories';
+import { useTags, Tag } from '@/hooks/useTags';
 import { ReceiptScanner } from './ReceiptScanner';
+import { TagSelector } from './TagSelector';
 
 interface TransactionData {
   type: 'income' | 'expense';
@@ -13,6 +15,7 @@ interface TransactionData {
   description: string;
   date: string;
   image_url?: string;
+  tags?: Tag[];
 }
 
 interface AddTransactionProps {
@@ -24,11 +27,20 @@ interface AddTransactionProps {
 
 export function AddTransaction({ onAdd, onClose, editingTransaction, onUpdate }: AddTransactionProps) {
   const { getExpenseCategories, getIncomeCategories, loading } = useCategories();
+  const { getTransactionTags, addTagToTransaction } = useTags();
   const [type, setType] = useState<'expense' | 'income'>(editingTransaction?.type || 'expense');
   const [amount, setAmount] = useState(editingTransaction?.amount?.toString() || '');
   const [category, setCategory] = useState(editingTransaction?.category || '');
   const [description, setDescription] = useState(editingTransaction?.description || '');
   const [imageUrl, setImageUrl] = useState<string | null>(editingTransaction?.image_url || null);
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+
+  // Load existing tags when editing
+  useEffect(() => {
+    if (editingTransaction?.id) {
+      getTransactionTags(editingTransaction.id).then(setSelectedTags);
+    }
+  }, [editingTransaction?.id]);
 
   const expenseCategories = getExpenseCategories();
   const incomeCategories = getIncomeCategories();
@@ -81,6 +93,7 @@ export function AddTransaction({ onAdd, onClose, editingTransaction, onUpdate }:
       description,
       date: editingTransaction?.date || new Date().toISOString(),
       image_url: imageUrl || undefined,
+      tags: selectedTags,
     };
 
     if (isEditing && onUpdate) {
@@ -190,6 +203,16 @@ export function AddTransaction({ onAdd, onClose, editingTransaction, onUpdate }:
             onChange={(e) => setDescription(e.target.value)}
             className="bg-muted border-0"
           />
+
+          {/* Tags */}
+          <div>
+            <p className="text-sm text-muted-foreground mb-2">标签</p>
+            <TagSelector
+              transactionId={editingTransaction?.id}
+              selectedTags={selectedTags}
+              onTagsChange={setSelectedTags}
+            />
+          </div>
         </div>
       </div>
     </div>
