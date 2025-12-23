@@ -12,23 +12,29 @@ interface TransactionData {
   category: string;
   description: string;
   date: string;
+  image_url?: string;
 }
 
 interface AddTransactionProps {
   onAdd: (transaction: TransactionData) => void;
   onClose: () => void;
+  editingTransaction?: TransactionData & { id: string };
+  onUpdate?: (id: string, transaction: TransactionData) => void;
 }
 
-export function AddTransaction({ onAdd, onClose }: AddTransactionProps) {
+export function AddTransaction({ onAdd, onClose, editingTransaction, onUpdate }: AddTransactionProps) {
   const { getExpenseCategories, getIncomeCategories, loading } = useCategories();
-  const [type, setType] = useState<'expense' | 'income'>('expense');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('');
-  const [description, setDescription] = useState('');
+  const [type, setType] = useState<'expense' | 'income'>(editingTransaction?.type || 'expense');
+  const [amount, setAmount] = useState(editingTransaction?.amount?.toString() || '');
+  const [category, setCategory] = useState(editingTransaction?.category || '');
+  const [description, setDescription] = useState(editingTransaction?.description || '');
+  const [imageUrl, setImageUrl] = useState<string | null>(editingTransaction?.image_url || null);
 
   const expenseCategories = getExpenseCategories();
   const incomeCategories = getIncomeCategories();
   const currentCategories = type === 'expense' ? expenseCategories : incomeCategories;
+
+  const isEditing = !!editingTransaction;
 
   // Set default category when type changes or categories load
   useEffect(() => {
@@ -36,6 +42,13 @@ export function AddTransaction({ onAdd, onClose }: AddTransactionProps) {
       setCategory(currentCategories[0].name);
     }
   }, [currentCategories, type]);
+
+  // Update category when editing and categories are loaded
+  useEffect(() => {
+    if (editingTransaction?.category && currentCategories.length > 0) {
+      setCategory(editingTransaction.category);
+    }
+  }, [editingTransaction, currentCategories]);
 
   const handleTypeChange = (newType: 'expense' | 'income') => {
     setType(newType);
@@ -45,11 +58,12 @@ export function AddTransaction({ onAdd, onClose }: AddTransactionProps) {
     }
   };
 
-  const handleScanComplete = (result: { amount: number; type: 'income' | 'expense'; category: string; description: string }) => {
+  const handleScanComplete = (result: { amount: number; type: 'income' | 'expense'; category: string; description: string; imageUrl: string }) => {
     setAmount(result.amount.toString());
     setType(result.type);
     setCategory(result.category);
     setDescription(result.description);
+    setImageUrl(result.imageUrl);
   };
 
   const getCategoryNames = () => ({
@@ -60,35 +74,47 @@ export function AddTransaction({ onAdd, onClose }: AddTransactionProps) {
   const handleSubmit = () => {
     if (!amount || parseFloat(amount) <= 0) return;
     
-    onAdd({
+    const transactionData: TransactionData = {
       type,
       amount: parseFloat(amount),
       category: category || '其他',
       description,
-      date: new Date().toISOString(),
-    });
+      date: editingTransaction?.date || new Date().toISOString(),
+      image_url: imageUrl || undefined,
+    };
+
+    if (isEditing && onUpdate) {
+      onUpdate(editingTransaction.id, transactionData);
+    } else {
+      onAdd(transactionData);
+    }
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm animate-fade-in">
-      <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-elevated animate-slide-up">
-        <div className="flex items-center justify-between p-4 border-b border-border">
+      <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-elevated animate-slide-up max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-card z-10">
           <button 
             onClick={onClose}
             className="p-2 rounded-full hover:bg-muted transition-colors"
           >
             <X className="w-5 h-5 text-foreground" />
           </button>
-          <h2 className="font-semibold text-foreground">记一笔</h2>
+          <h2 className="font-semibold text-foreground">{isEditing ? '编辑账单' : '记一笔'}</h2>
           <Button size="sm" onClick={handleSubmit}>
-            保存
+            {isEditing ? '更新' : '保存'}
           </Button>
         </div>
 
         <div className="p-4 space-y-6">
           {/* Receipt Scanner */}
-          <ReceiptScanner onScanComplete={handleScanComplete} categories={getCategoryNames()} />
+          <ReceiptScanner 
+            onScanComplete={handleScanComplete} 
+            categories={getCategoryNames()} 
+            existingImageUrl={imageUrl || undefined}
+            onImageChange={setImageUrl}
+          />
           
           {/* Type Toggle */}
           <div className="flex gap-2 p-1 bg-muted rounded-xl">

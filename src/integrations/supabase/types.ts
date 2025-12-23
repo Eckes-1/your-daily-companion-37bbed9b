@@ -220,6 +220,7 @@ export type Database = {
           date: string
           description: string | null
           id: string
+          image_url: string | null
           type: string
           user_id: string
         }
@@ -230,6 +231,7 @@ export type Database = {
           date?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           type: string
           user_id: string
         }
@@ -240,6 +242,7 @@ export type Database = {
           date?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           type?: string
           user_id?: string
         }
