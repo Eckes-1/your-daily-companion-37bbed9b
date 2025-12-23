@@ -232,6 +232,19 @@ export function useExportData({ transactions }: UseExportDataProps) {
 
       const doc = new jsPDF();
 
+      // 添加中文字体支持 - 使用 SourceHanSansCN 字体
+      // 加载字体
+      const fontUrl = 'https://cdn.jsdelivr.net/npm/@aspect-dev/sc-fonts@1.0.0/fonts/SourceHanSansCN-Normal.min.ttf';
+      const fontResponse = await fetch(fontUrl);
+      const fontBuffer = await fontResponse.arrayBuffer();
+      const fontBase64 = btoa(
+        new Uint8Array(fontBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+      
+      doc.addFileToVFS('SourceHanSansCN.ttf', fontBase64);
+      doc.addFont('SourceHanSansCN.ttf', 'SourceHanSansCN', 'normal');
+      doc.setFont('SourceHanSansCN');
+
       // 计算汇总
       const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
       const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
@@ -239,18 +252,18 @@ export function useExportData({ transactions }: UseExportDataProps) {
 
       // 标题
       doc.setFontSize(18);
-      doc.text('Transaction Report', 14, 20);
+      doc.text('记账报表', 14, 20);
       doc.setFontSize(10);
-      doc.text(`Generated: ${format(new Date(), 'yyyy-MM-dd HH:mm')}`, 14, 28);
+      doc.text(`生成时间: ${format(new Date(), 'yyyy-MM-dd HH:mm')}`, 14, 28);
 
       // 汇总
       doc.setFontSize(12);
-      doc.text('Summary', 14, 40);
+      doc.text('收支汇总', 14, 40);
       doc.setFontSize(10);
-      doc.text(`Total Income: ${totalIncome.toFixed(2)}`, 14, 48);
-      doc.text(`Total Expense: ${totalExpense.toFixed(2)}`, 14, 54);
-      doc.text(`Balance: ${balance.toFixed(2)}`, 14, 60);
-      doc.text(`Total Transactions: ${transactions.length}`, 14, 66);
+      doc.text(`总收入: ¥${totalIncome.toFixed(2)}`, 14, 48);
+      doc.text(`总支出: ¥${totalExpense.toFixed(2)}`, 14, 54);
+      doc.text(`结余: ¥${balance.toFixed(2)}`, 14, 60);
+      doc.text(`交易笔数: ${transactions.length}`, 14, 66);
 
       // 分类汇总
       const categoryData: Record<string, { income: number; expense: number; count: number }> = {};
@@ -268,39 +281,40 @@ export function useExportData({ transactions }: UseExportDataProps) {
 
       const categoryTableData = Object.entries(categoryData).map(([cat, data]) => [
         cat,
-        data.income.toFixed(2),
-        data.expense.toFixed(2),
+        `¥${data.income.toFixed(2)}`,
+        `¥${data.expense.toFixed(2)}`,
         data.count.toString(),
       ]);
 
       autoTable(doc, {
         startY: 75,
-        head: [['Category', 'Income', 'Expense', 'Count']],
+        head: [['分类', '收入', '支出', '笔数']],
         body: categoryTableData,
         theme: 'striped',
-        headStyles: { fillColor: [255, 107, 53] },
+        headStyles: { fillColor: [255, 107, 53], font: 'SourceHanSansCN' },
+        styles: { font: 'SourceHanSansCN', fontSize: 10 },
       });
 
       // 明细表
       const detailData = transactions.map(t => [
         format(new Date(t.date), 'yyyy-MM-dd'),
-        t.type === 'income' ? 'Income' : 'Expense',
+        t.type === 'income' ? '收入' : '支出',
         t.category,
-        t.amount.toFixed(2),
+        `¥${t.amount.toFixed(2)}`,
         t.description || '-',
       ]);
 
       const finalY = (doc as any).lastAutoTable?.finalY || 120;
       autoTable(doc, {
         startY: finalY + 10,
-        head: [['Date', 'Type', 'Category', 'Amount', 'Description']],
+        head: [['日期', '类型', '分类', '金额', '备注']],
         body: detailData,
         theme: 'grid',
-        headStyles: { fillColor: [100, 100, 100] },
-        styles: { fontSize: 8 },
+        headStyles: { fillColor: [100, 100, 100], font: 'SourceHanSansCN' },
+        styles: { font: 'SourceHanSansCN', fontSize: 8 },
       });
 
-      doc.save(`Transaction_Report_${format(new Date(), 'yyyyMMdd')}.pdf`);
+      doc.save(`记账报表_${format(new Date(), 'yyyyMMdd')}.pdf`);
       toast.success('PDF报表导出成功');
     } catch (error) {
       console.error('PDF export error:', error);
