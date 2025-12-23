@@ -31,6 +31,8 @@ interface ImportedTransaction {
 }
 
 interface ImportDataProps {
+  isOpen: boolean;
+  onClose: () => void;
   onImportComplete: () => void;
 }
 
@@ -40,8 +42,7 @@ const TEMPLATE_DATA = [
   { '日期': '2024-01-16', '类型': '收入', '金额': 8000, '分类': '工资', '备注': '1月工资', '图片': '' },
 ];
 
-export function ImportData({ onImportComplete }: ImportDataProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function ImportData({ isOpen, onClose, onImportComplete }: ImportDataProps) {
   const [importing, setImporting] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [preview, setPreview] = useState<ImportedTransaction[]>([]);
@@ -402,8 +403,8 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
         description: `已导入 ${preview.length} 条记录${uploadedCount > 0 ? `，上传 ${uploadedCount} 张图片` : ''}`
       });
       
-      setIsOpen(false);
       setPreview([]);
+      onClose();
       onImportComplete();
     } catch (err) {
       console.error('Import error:', err);
@@ -418,26 +419,15 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
   };
 
   const handleClose = () => {
-    setIsOpen(false);
     setPreview([]);
     setError(null);
+    onClose();
   };
 
   const imagesCount = preview.filter(t => t._imageFile).length;
 
   return (
-    <>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsOpen(true)}
-        className="gap-1"
-      >
-        <Upload className="w-4 h-4" />
-        <span className="hidden sm:inline">导入</span>
-      </Button>
-
-      <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -600,6 +590,5 @@ export function ImportData({ onImportComplete }: ImportDataProps) {
           </div>
         </DialogContent>
       </Dialog>
-    </>
   );
 }
