@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Tag, Bell, PieChart, Search, X } from 'lucide-react';
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
+import { useTags } from '@/hooks/useTags';
 import { TransactionCard } from './TransactionCard';
 import { AddTransaction } from './AddTransaction';
 import { AccountingCharts } from './AccountingCharts';
@@ -10,9 +11,11 @@ import { DateFilter, DateRange } from './DateFilter';
 import { CategoryManager } from './CategoryManager';
 import { ReminderSettings } from './ReminderSettings';
 import { StatisticsReport } from './StatisticsReport';
+import { TagFilter } from './TagFilter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 export function AccountingTab() {
   const { transactions, loading, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
@@ -23,7 +26,33 @@ export function AccountingTab() {
   const [showReminderSettings, setShowReminderSettings] = useState(false);
   const [showStatistics, setShowStatistics] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [transactionTagMap, setTransactionTagMap] = useState<Record<string, string[]>>({});
   const [editingTransaction, setEditingTransaction] = useState<(Transaction & { id: string }) | null>(null);
+
+  // Fetch all transaction tags for filtering
+  useEffect(() => {
+    const fetchTransactionTags = async () => {
+      const { data } = await supabase
+        .from('transaction_tags')
+        .select('transaction_id, tag_id');
+      
+      if (data) {
+        const map: Record<string, string[]> = {};
+        data.forEach(item => {
+          if (!map[item.transaction_id]) {
+            map[item.transaction_id] = [];
+          }
+          map[item.transaction_id].push(item.tag_id);
+        });
+        setTransactionTagMap(map);
+      }
+    };
+    
+    if (transactions.length > 0) {
+      fetchTransactionTags();
+    }
+  }, [transactions]);
 
   const handleAdd = async (data: Omit<Transaction, 'id'>) => {
     await addTransaction(data);
@@ -46,7 +75,7 @@ export function AccountingTab() {
     setEditingTransaction(null);
   };
 
-  // 过滤后的交易记录（日期 + 搜索）
+  // 过滤后的交易记录（日期 + 搜索 + 标签）
   const filteredTransactions = useMemo(() => {
     let result = transactions;
     
@@ -71,8 +100,16 @@ export function AccountingTab() {
       );
     }
     
+    // 标签筛选
+    if (selectedTagIds.length > 0) {
+      result = result.filter(t => {
+        const tagIds = transactionTagMap[t.id] || [];
+        return selectedTagIds.some(selectedId => tagIds.includes(selectedId));
+      });
+    }
+    
     return result;
-  }, [transactions, dateRange, searchQuery]);
+  }, [transactions, dateRange, searchQuery, selectedTagIds, transactionTagMap]);
 
   // 当月交易（用于预算计算）
   const currentMonthTransactions = useMemo(() => {
@@ -133,10 +170,16 @@ export function AccountingTab() {
 
       {/* 工具栏 */}
       <div className="px-4 mb-4 flex items-center justify-between gap-2">
-        <DateFilter 
-          dateRange={dateRange} 
-          onDateRangeChange={setDateRange} 
-        />
+        <div className="flex items-center gap-2">
+          <DateFilter 
+            dateRange={dateRange} 
+            onDateRangeChange={setDateRange} 
+          />
+          <TagFilter 
+            selectedTagIds={selectedTagIds}
+            onTagsChange={setSelectedTagIds}
+          />
+        </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
