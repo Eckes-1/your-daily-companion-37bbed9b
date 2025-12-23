@@ -14,6 +14,7 @@ import { StatisticsReport } from './StatisticsReport';
 import { BatchActions } from './BatchActions';
 import { BackupManager } from './BackupManager';
 import { UnifiedToolbarMenu } from './UnifiedToolbarMenu';
+import { PDFExportDialog } from './PDFExportDialog';
 import { Input } from '@/components/ui/input';
 import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,6 +31,7 @@ export function AccountingTab() {
   const [showStatistics, setShowStatistics] = useState(false);
   const [showBackupManager, setShowBackupManager] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showPDFExport, setShowPDFExport] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [transactionTagMap, setTransactionTagMap] = useState<Record<string, string[]>>({});
@@ -155,7 +157,7 @@ export function AccountingTab() {
           onExportByCategory={exportByCategoryExcel}
           onExportByMonth={exportByMonthExcel}
           onExportZip={exportToZip}
-          onExportPDF={exportToPDF}
+          onExportPDF={() => setShowPDFExport(true)}
           exporting={exporting}
         />
       </div>
@@ -201,6 +203,7 @@ export function AccountingTab() {
       <StatisticsReport transactions={transactions} isOpen={showStatistics} onClose={() => setShowStatistics(false)} />
       <BackupManager isOpen={showBackupManager} onClose={() => setShowBackupManager(false)} onRestoreComplete={refetch} />
       <ImportData isOpen={showImport} onClose={() => setShowImport(false)} onImportComplete={refetch} />
+      <PDFExportDialog isOpen={showPDFExport} onClose={() => setShowPDFExport(false)} transactions={transactions} />
       {selectionMode && <BatchActions selectedIds={selectedIds} filteredCount={filteredTransactions.length} onClearSelection={handleClearSelection} onDelete={handleBatchDelete} onActionComplete={refetch} onSelectAll={selectAllFiltered} onInvertSelect={invertSelectFiltered} />}
     </div>
   );
