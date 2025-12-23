@@ -1,0 +1,88 @@
+import { useState } from 'react';
+import { Plus, FileText } from 'lucide-react';
+import { Note } from '@/types';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { NoteCard } from './NoteCard';
+import { NoteEditor } from './NoteEditor';
+
+export function NotesTab() {
+  const [notes, setNotes] = useLocalStorage<Note[]>('notes', []);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+
+  const handleSave = (noteData: Partial<Note>) => {
+    if (noteData.id) {
+      setNotes(notes.map(n => 
+        n.id === noteData.id 
+          ? { ...n, ...noteData, updatedAt: new Date() }
+          : n
+      ));
+    } else {
+      const newNote: Note = {
+        id: crypto.randomUUID(),
+        title: noteData.title || '',
+        content: noteData.content || '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setNotes([newNote, ...notes]);
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    setNotes(notes.filter(n => n.id !== id));
+  };
+
+  const handleEdit = (note: Note) => {
+    setEditingNote(note);
+    setIsEditing(true);
+  };
+
+  return (
+    <div className="pb-20">
+      {notes.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+          <div className="w-16 h-16 rounded-full bg-note flex items-center justify-center mb-4">
+            <FileText className="w-8 h-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground">暂无笔记</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            点击右下角按钮创建第一篇笔记
+          </p>
+        </div>
+      ) : (
+        <div className="px-4 space-y-3">
+          {notes.map((note) => (
+            <NoteCard 
+              key={note.id} 
+              note={note} 
+              onDelete={handleDelete}
+              onClick={handleEdit}
+            />
+          ))}
+        </div>
+      )}
+
+      <button
+        onClick={() => {
+          setEditingNote(null);
+          setIsEditing(true);
+        }}
+        className="fab"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
+
+      {isEditing && (
+        <NoteEditor
+          note={editingNote}
+          onSave={handleSave}
+          onClose={() => {
+            setIsEditing(false);
+            setEditingNote(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
