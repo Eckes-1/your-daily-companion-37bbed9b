@@ -2,3 +2,6 @@ project_id = "jeskffhmwyzrdnwsttrx"
 
 [functions.analyze-receipt]
 verify_jwt = false
+
+[functions.create-share-link]
+verify_jwt = false

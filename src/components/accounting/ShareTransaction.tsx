@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Share2, Copy, Check, Download } from 'lucide-react';
+import { Share2, Copy, Check, Download, Link, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,6 +11,7 @@ import { Transaction } from '@/hooks/useTransactions';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ShareTransactionProps {
   transaction: Transaction;
@@ -21,6 +22,8 @@ interface ShareTransactionProps {
 export function ShareTransaction({ transaction, isOpen, onClose }: ShareTransactionProps) {
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [creatingLink, setCreatingLink] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -50,7 +53,7 @@ export function ShareTransaction({ transaction, isOpen, onClose }: ShareTransact
       const el = cardRef.current;
 
       const canvas = await html2canvas(el, {
-        backgroundColor: null,
+        backgroundColor: '#1c1c1e',
         scale: 2,
         useCORS: true,
         logging: false,
@@ -74,6 +77,36 @@ export function ShareTransaction({ transaction, isOpen, onClose }: ShareTransact
     }
   };
 
+  const createShareLink = async () => {
+    setCreatingLink(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-share-link', {
+        body: {
+          transaction: {
+            type: transaction.type,
+            amount: transaction.amount,
+            category: transaction.category,
+            description: transaction.description || '',
+            date: transaction.date,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      const shareUrl = `${window.location.origin}/share/${data.shareId}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setLinkCopied(true);
+      toast({ title: '分享链接已复制', description: '有效期30天' });
+      setTimeout(() => setLinkCopied(false), 3000);
+    } catch (error) {
+      console.error('Error creating share link:', error);
+      toast({ title: '生成链接失败', variant: 'destructive' });
+    } finally {
+      setCreatingLink(false);
+    }
+  };
+
   const shareNative = async () => {
     if (navigator.share) {
       try {
@@ -82,7 +115,6 @@ export function ShareTransaction({ transaction, isOpen, onClose }: ShareTransact
           text: shareText,
         });
       } catch (error) {
-        // 用户取消不提示；其他情况直接降级为复制，避免“分享失败”干扰
         if ((error as Error).name !== 'AbortError') {
           await copyToClipboard();
         }
@@ -94,101 +126,125 @@ export function ShareTransaction({ transaction, isOpen, onClose }: ShareTransact
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Share2 className="w-5 h-5" />
+      <DialogContent className="max-w-[400px] p-4">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Share2 className="w-4 h-4" />
             分享账单
           </DialogTitle>
         </DialogHeader>
 
-        {/* 预览卡片（用于导出图片） */}
+        {/* 预览卡片 */}
         <div
           ref={cardRef}
-          className="mx-auto w-[360px] max-w-full rounded-2xl border border-border/60 bg-card p-4 shadow-sm overflow-hidden"
+          className="rounded-xl border border-border bg-card p-4"
+          style={{ backgroundColor: '#1c1c1e' }}
         >
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
-
-            <div className="relative flex items-center gap-3">
-              <div
+          <div className="flex items-center gap-3 mb-3">
+            <div
+              className={
+                `w-10 h-10 rounded-xl flex items-center justify-center ` +
+                (transaction.type === 'income'
+                  ? 'bg-accent/20'
+                  : 'bg-destructive/20')
+              }
+            >
+              <span className="text-base">
+                {transaction.type === 'income' ? '💰' : '💸'}
+              </span>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">
+                {transaction.type === 'income' ? '收入' : '支出'}
+              </p>
+              <p
                 className={
-                  `w-11 h-11 rounded-2xl flex items-center justify-center border border-border/50 ` +
-                  (transaction.type === 'income'
-                    ? 'bg-income text-accent'
-                    : 'bg-expense text-destructive')
+                  `text-xl font-bold ` +
+                  (transaction.type === 'income' ? 'text-accent' : 'text-destructive')
                 }
               >
-                <span className="text-lg" aria-hidden>
-                  {transaction.type === 'income' ? '💰' : '💸'}
-                </span>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-muted-foreground">
-                  {transaction.type === 'income' ? '收入' : '支出'}
-                </p>
-                <p
-                  className={
-                    `text-2xl font-bold leading-tight ` +
-                    (transaction.type === 'income' ? 'text-accent' : 'text-destructive')
-                  }
-                >
-                  ¥{transaction.amount.toFixed(2)}
-                </p>
-              </div>
+                ¥{transaction.amount.toFixed(2)}
+              </p>
             </div>
+          </div>
 
-            <div className="relative mt-4 rounded-xl border border-border/50 bg-background/40 p-3">
-              <div className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-2 text-sm">
-                <span className="text-muted-foreground">分类</span>
-                <span className="font-medium text-right">{transaction.category}</span>
-
-                <span className="text-muted-foreground">备注</span>
-                <span className="font-medium text-right break-words">{transaction.description || '—'}</span>
-
-                <span className="text-muted-foreground">日期</span>
-                <span className="font-medium text-right">
-                  {format(new Date(transaction.date), 'yyyy/MM/dd', { locale: zhCN })}
-                </span>
-              </div>
+          <div className="rounded-lg bg-background/30 p-3 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">分类</span>
+              <span className="font-medium">{transaction.category}</span>
             </div>
-
-            <div className="relative mt-4 pt-3 border-t border-border/50 text-center">
-              <p className="text-xs text-muted-foreground">来自「记账本」</p>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">备注</span>
+              <span className="font-medium text-right max-w-[55%] break-words">
+                {transaction.description || '—'}
+              </span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">日期</span>
+              <span className="font-medium">
+                {format(new Date(transaction.date), 'yyyy/MM/dd', { locale: zhCN })}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 pt-2 border-t border-border/30 text-center">
+            <p className="text-[10px] text-muted-foreground">来自「记账本」</p>
           </div>
         </div>
 
-        {/* 分享按钮 */}
-        <div className="grid grid-cols-3 gap-2">
-          <Button
-            variant="outline"
-            className="flex flex-col items-center gap-1 h-auto py-3"
-            onClick={copyToClipboard}
-          >
-            {copied ? <Check className="w-5 h-5 text-accent" /> : <Copy className="w-5 h-5" />}
-            <span className="text-xs">复制文字</span>
-          </Button>
+        {/* 分享按钮 - 2行布局 */}
+        <div className="space-y-2 mt-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-2 h-10"
+              onClick={copyToClipboard}
+            >
+              {copied ? <Check className="w-4 h-4 text-accent" /> : <Copy className="w-4 h-4" />}
+              <span className="text-xs">复制文字</span>
+            </Button>
 
-          <Button
-            variant="outline"
-            className="flex flex-col items-center gap-1 h-auto py-3"
-            onClick={downloadAsImage}
-            disabled={generating}
-          >
-            <Download className="w-5 h-5" />
-            <span className="text-xs">{generating ? '生成中...' : '保存图片'}</span>
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-2 h-10"
+              onClick={downloadAsImage}
+              disabled={generating}
+            >
+              <Download className="w-4 h-4" />
+              <span className="text-xs">{generating ? '生成中...' : '保存图片'}</span>
+            </Button>
+          </div>
 
-          <Button
-            variant="default"
-            className="flex flex-col items-center gap-1 h-auto py-3"
-            onClick={shareNative}
-          >
-            <Share2 className="w-5 h-5" />
-            <span className="text-xs">分享</span>
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-2 h-10"
+              onClick={createShareLink}
+              disabled={creatingLink}
+            >
+              {creatingLink ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : linkCopied ? (
+                <Check className="w-4 h-4 text-accent" />
+              ) : (
+                <Link className="w-4 h-4" />
+              )}
+              <span className="text-xs">{linkCopied ? '已复制链接' : '生成链接'}</span>
+            </Button>
+
+            <Button
+              variant="default"
+              size="sm"
+              className="flex items-center justify-center gap-2 h-10"
+              onClick={shareNative}
+            >
+              <Share2 className="w-4 h-4" />
+              <span className="text-xs">分享</span>
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
