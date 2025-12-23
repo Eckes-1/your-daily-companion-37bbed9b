@@ -1,24 +1,58 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3 } from 'lucide-react';
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { TransactionCard } from './TransactionCard';
 import { AddTransaction } from './AddTransaction';
 import { AccountingCharts } from './AccountingCharts';
+import { ExportData } from './ExportData';
+import { BudgetManager } from './BudgetManager';
+import { DateFilter, DateRange } from './DateFilter';
+import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
 export function AccountingTab() {
   const { transactions, loading, addTransaction, deleteTransaction } = useTransactions();
   const [isAdding, setIsAdding] = useState(false);
   const [showCharts, setShowCharts] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
 
   const handleAdd = async (data: Omit<Transaction, 'id'>) => {
     await addTransaction(data);
   };
 
-  const totalIncome = transactions
+  // 过滤后的交易记录
+  const filteredTransactions = useMemo(() => {
+    if (!dateRange) return transactions;
+    
+    return transactions.filter(t => {
+      const date = new Date(t.date);
+      return (
+        isAfter(date, startOfDay(dateRange.from)) &&
+        isBefore(date, endOfDay(dateRange.to))
+      );
+    });
+  }, [transactions, dateRange]);
+
+  // 当月交易（用于预算计算）
+  const currentMonthTransactions = useMemo(() => {
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    
+    return transactions.filter(t => {
+      const date = new Date(t.date);
+      return isAfter(date, startOfDay(monthStart)) && isBefore(date, endOfDay(monthEnd));
+    });
+  }, [transactions]);
+
+  const totalIncome = filteredTransactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalExpense = transactions
+  const totalExpense = filteredTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const currentMonthExpense = currentMonthTransactions
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -34,11 +68,27 @@ export function AccountingTab() {
 
   return (
     <div className="pb-20">
+      {/* 工具栏 */}
+      <div className="px-4 mb-4 flex items-center justify-between">
+        <DateFilter 
+          dateRange={dateRange} 
+          onDateRangeChange={setDateRange} 
+        />
+        <ExportData transactions={filteredTransactions} />
+      </div>
+
+      {/* 预算管理 */}
+      <div className="px-4">
+        <BudgetManager totalExpense={currentMonthExpense} />
+      </div>
+
       {/* Summary Cards */}
       <div className="px-4 mb-6">
         <div className="glass-card p-5">
           <div className="text-center mb-4">
-            <p className="text-sm text-muted-foreground">本月结余</p>
+            <p className="text-sm text-muted-foreground">
+              {dateRange ? '筛选期间结余' : '本月结余'}
+            </p>
             <p className="text-3xl font-bold text-foreground mt-1">
               ¥{balance.toFixed(2)}
             </p>
@@ -62,7 +112,7 @@ export function AccountingTab() {
         </div>
         
         {/* 图表切换按钮 */}
-        {transactions.length > 0 && (
+        {filteredTransactions.length > 0 && (
           <button
             onClick={() => setShowCharts(!showCharts)}
             className="w-full mt-4 flex items-center justify-center gap-2 py-2 text-sm text-primary hover:text-primary/80 transition-colors"
@@ -74,22 +124,26 @@ export function AccountingTab() {
       </div>
 
       {/* 统计图表 */}
-      {showCharts && <AccountingCharts transactions={transactions} />}
+      {showCharts && <AccountingCharts transactions={filteredTransactions} />}
 
-      {transactions.length === 0 ? (
+      {filteredTransactions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
           <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
             <Wallet className="w-8 h-8 text-primary" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground">暂无记录</h3>
+          <h3 className="text-lg font-semibold text-foreground">
+            {dateRange ? '该时间段暂无记录' : '暂无记录'}
+          </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            点击右下角按钮开始记账
+            {dateRange ? '尝试调整筛选条件' : '点击右下角按钮开始记账'}
           </p>
         </div>
       ) : (
         <div className="px-4 space-y-3">
-          <h3 className="font-semibold text-foreground mb-3">最近记录</h3>
-          {transactions.map((transaction) => (
+          <h3 className="font-semibold text-foreground mb-3">
+            {dateRange ? `筛选结果 (${filteredTransactions.length}条)` : '最近记录'}
+          </h3>
+          {filteredTransactions.map((transaction) => (
             <TransactionCard 
               key={transaction.id} 
               transaction={{
