@@ -103,43 +103,43 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
   };
 
   const renderCategoryList = (categoryList: Category[]) => (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {categoryList.map((category) => (
         <div
           key={category.id}
-          className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+          className="flex items-center justify-between p-2 rounded-lg bg-secondary/50"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span 
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-lg"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-base"
               style={{ backgroundColor: category.color + '20' }}
             >
               {category.icon}
             </span>
-            <span className="font-medium text-foreground">{category.name}</span>
+            <span className="font-medium text-foreground text-sm">{category.name}</span>
             {category.is_default && (
-              <span className="text-xs text-muted-foreground px-2 py-0.5 bg-muted rounded">
+              <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
                 默认
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-7 w-7"
               onClick={() => startEdit(category)}
             >
-              <Edit2 className="w-4 h-4" />
+              <Edit2 className="w-3.5 h-3.5" />
             </Button>
             {!category.is_default && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
+                className="h-7 w-7 text-destructive hover:text-destructive"
                 onClick={() => handleDelete(category)}
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5" />
               </Button>
             )}
           </div>
@@ -149,35 +149,36 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
   );
 
   const renderForm = () => (
-    <div className="space-y-4 p-4 rounded-lg bg-secondary/30 border border-border">
+    <div className="space-y-3 p-3 rounded-lg bg-secondary/30 border border-border">
       <div className="flex items-center justify-between">
-        <h4 className="font-medium text-foreground">
+        <h4 className="font-medium text-foreground text-sm">
           {editingCategory ? '编辑分类' : '添加分类'}
         </h4>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={cancelEdit}>
-          <X className="w-4 h-4" />
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEdit}>
+          <X className="w-3.5 h-3.5" />
         </Button>
       </div>
       
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div>
-          <label className="text-sm text-muted-foreground mb-1 block">名称</label>
+          <label className="text-xs text-muted-foreground mb-1 block">名称</label>
           <Input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="输入分类名称"
+            className="h-8 text-sm"
           />
         </div>
         
         <div>
-          <label className="text-sm text-muted-foreground mb-2 block">图标</label>
-          <div className="flex flex-wrap gap-2">
+          <label className="text-xs text-muted-foreground mb-1.5 block">图标</label>
+          <div className="flex flex-wrap gap-1.5">
             {ICONS.map((icon) => (
               <button
                 key={icon}
                 type="button"
                 onClick={() => setNewIcon(icon)}
-                className={`w-10 h-10 flex items-center justify-center rounded-lg text-lg transition-all ${
+                className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm transition-all ${
                   newIcon === icon
                     ? 'bg-primary text-primary-foreground ring-2 ring-primary'
                     : 'bg-secondary hover:bg-secondary/80'
@@ -190,15 +191,15 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
         </div>
         
         <div>
-          <label className="text-sm text-muted-foreground mb-2 block">颜色</label>
-          <div className="flex flex-wrap gap-2">
+          <label className="text-xs text-muted-foreground mb-1.5 block">颜色</label>
+          <div className="flex flex-wrap gap-1.5">
             {COLORS.map((color) => (
               <button
                 key={color}
                 type="button"
                 onClick={() => setNewColor(color)}
-                className={`w-8 h-8 rounded-full transition-all ${
-                  newColor === color ? 'ring-2 ring-offset-2 ring-primary' : ''
+                className={`w-6 h-6 rounded-full transition-all ${
+                  newColor === color ? 'ring-2 ring-offset-1 ring-primary' : ''
                 }`}
                 style={{ backgroundColor: color }}
               />
@@ -207,11 +208,11 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
         </div>
       </div>
       
-      <div className="flex gap-2 pt-2">
-        <Button variant="outline" className="flex-1" onClick={cancelEdit}>
+      <div className="flex gap-2 pt-1">
+        <Button variant="outline" size="sm" className="flex-1 h-8" onClick={cancelEdit}>
           取消
         </Button>
-        <Button className="flex-1" onClick={editingCategory ? handleUpdate : handleAdd}>
+        <Button size="sm" className="flex-1 h-8" onClick={editingCategory ? handleUpdate : handleAdd}>
           {editingCategory ? '保存' : '添加'}
         </Button>
       </div>
@@ -220,47 +221,49 @@ export function CategoryManager({ isOpen, onClose }: CategoryManagerProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Tag className="w-5 h-5" />
+      <DialogContent className="sm:max-w-sm max-h-[70vh] overflow-hidden flex flex-col p-4">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Tag className="w-4 h-4" />
             分类管理
           </DialogTitle>
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'expense' | 'income')} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="expense">支出分类</TabsTrigger>
-            <TabsTrigger value="income">收入分类</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 h-9">
+            <TabsTrigger value="expense" className="text-sm">支出</TabsTrigger>
+            <TabsTrigger value="income" className="text-sm">收入</TabsTrigger>
           </TabsList>
           
-          <div className="flex-1 overflow-y-auto mt-4">
-            <TabsContent value="expense" className="m-0 space-y-4">
+          <div className="flex-1 overflow-y-auto mt-3 space-y-3">
+            <TabsContent value="expense" className="m-0 space-y-3">
               {(isAdding || editingCategory) && activeTab === 'expense' ? (
                 renderForm()
               ) : (
                 <Button
                   variant="outline"
-                  className="w-full gap-2"
+                  size="sm"
+                  className="w-full gap-2 h-8"
                   onClick={startAdd}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
                   添加支出分类
                 </Button>
               )}
               {renderCategoryList(expenseCategories)}
             </TabsContent>
             
-            <TabsContent value="income" className="m-0 space-y-4">
+            <TabsContent value="income" className="m-0 space-y-3">
               {(isAdding || editingCategory) && activeTab === 'income' ? (
                 renderForm()
               ) : (
                 <Button
                   variant="outline"
-                  className="w-full gap-2"
+                  size="sm"
+                  className="w-full gap-2 h-8"
                   onClick={startAdd}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
                   添加收入分类
                 </Button>
               )}
