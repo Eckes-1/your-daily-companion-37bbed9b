@@ -1,4 +1,4 @@
-import { Trash2, Edit2, Image, Check, Share2 } from 'lucide-react';
+import { Trash2, Edit2, Image, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -6,7 +6,6 @@ import { useState, useEffect } from 'react';
 import { useTags, Tag } from '@/hooks/useTags';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ShareTransaction } from './ShareTransaction';
-import { Transaction } from '@/hooks/useTransactions';
 interface TransactionDisplay {
   id: string;
   type: 'income' | 'expense';
