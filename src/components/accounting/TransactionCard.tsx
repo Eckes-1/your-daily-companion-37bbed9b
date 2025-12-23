@@ -80,7 +80,6 @@ export function TransactionCard({
   // 从数据库分类获取图标和颜色
   const categoryData = categories.find(c => c.name === transaction.category);
   const icon = categoryData?.icon || '📝';
-  const iconUrl = categoryData?.icon_url;
   const color = categoryData?.color || '#6b7280';
   const gradient = colorToGradient[color] || 'from-gray-400 to-slate-500';
 
@@ -104,12 +103,6 @@ export function TransactionCard({
               onClick={(e) => e.stopPropagation()}
               className="shrink-0 w-5 h-5"
               aria-label={isSelected ? "取消选择该账单" : "选择该账单"}
-            />
-          ) : iconUrl ? (
-            <img 
-              src={iconUrl} 
-              alt={categoryData?.name || 'category'} 
-              className="w-10 h-10 rounded-xl shrink-0 object-cover shadow-md"
             />
           ) : (
             <div className={cn(

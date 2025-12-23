@@ -202,11 +202,7 @@ export function AddTransaction({ onAdd, onClose, editingTransaction, onUpdate }:
                         : 'bg-muted/50 border-2 border-transparent'
                     )}
                   >
-                    {cat.icon_url ? (
-                      <img src={cat.icon_url} alt={cat.name} className="w-8 h-8 rounded-lg object-cover" />
-                    ) : (
-                      <span className="text-xl">{cat.icon}</span>
-                    )}
+                    <span className="text-xl">{cat.icon}</span>
                     <span className="text-[11px] font-medium text-foreground truncate w-full text-center">{cat.name}</span>
                   </button>
                 ))}
