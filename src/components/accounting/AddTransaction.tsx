@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { X, Plus, Minus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Plus, Minus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useCategories } from '@/hooks/useCategories';
 
 interface TransactionData {
   type: 'income' | 'expense';
@@ -17,22 +18,31 @@ interface AddTransactionProps {
   onClose: () => void;
 }
 
-const categories = [
-  { id: 'food', label: '餐饮', icon: '🍜' },
-  { id: 'transport', label: '交通', icon: '🚗' },
-  { id: 'shopping', label: '购物', icon: '🛍️' },
-  { id: 'entertainment', label: '娱乐', icon: '🎮' },
-  { id: 'salary', label: '工资', icon: '💰' },
-  { id: 'investment', label: '投资', icon: '📈' },
-  { id: 'gift', label: '礼金', icon: '🎁' },
-  { id: 'other', label: '其他', icon: '📝' },
-];
-
 export function AddTransaction({ onAdd, onClose }: AddTransactionProps) {
+  const { getExpenseCategories, getIncomeCategories, loading } = useCategories();
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('food');
+  const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
+
+  const expenseCategories = getExpenseCategories();
+  const incomeCategories = getIncomeCategories();
+  const currentCategories = type === 'expense' ? expenseCategories : incomeCategories;
+
+  // Set default category when type changes or categories load
+  useEffect(() => {
+    if (currentCategories.length > 0 && !category) {
+      setCategory(currentCategories[0].name);
+    }
+  }, [currentCategories, type]);
+
+  const handleTypeChange = (newType: 'expense' | 'income') => {
+    setType(newType);
+    const cats = newType === 'expense' ? expenseCategories : incomeCategories;
+    if (cats.length > 0) {
+      setCategory(cats[0].name);
+    }
+  };
 
   const handleSubmit = () => {
     if (!amount || parseFloat(amount) <= 0) return;
@@ -40,7 +50,7 @@ export function AddTransaction({ onAdd, onClose }: AddTransactionProps) {
     onAdd({
       type,
       amount: parseFloat(amount),
-      category,
+      category: category || '其他',
       description,
       date: new Date().toISOString(),
     });
@@ -67,7 +77,7 @@ export function AddTransaction({ onAdd, onClose }: AddTransactionProps) {
           {/* Type Toggle */}
           <div className="flex gap-2 p-1 bg-muted rounded-xl">
             <button
-              onClick={() => setType('expense')}
+              onClick={() => handleTypeChange('expense')}
               className={cn(
                 'flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-all',
                 type === 'expense' 
@@ -79,7 +89,7 @@ export function AddTransaction({ onAdd, onClose }: AddTransactionProps) {
               支出
             </button>
             <button
-              onClick={() => setType('income')}
+              onClick={() => handleTypeChange('income')}
               className={cn(
                 'flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-all',
                 type === 'income' 
@@ -107,23 +117,29 @@ export function AddTransaction({ onAdd, onClose }: AddTransactionProps) {
           </div>
 
           {/* Category Grid */}
-          <div className="grid grid-cols-4 gap-3">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setCategory(cat.id)}
-                className={cn(
-                  'flex flex-col items-center gap-1 p-3 rounded-xl transition-all',
-                  category === cat.id 
-                    ? 'bg-primary/10 border-2 border-primary' 
-                    : 'bg-muted border-2 border-transparent'
-                )}
-              >
-                <span className="text-2xl">{cat.icon}</span>
-                <span className="text-xs font-medium text-foreground">{cat.label}</span>
-              </button>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-3 max-h-48 overflow-y-auto">
+              {currentCategories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setCategory(cat.name)}
+                  className={cn(
+                    'flex flex-col items-center gap-1 p-3 rounded-xl transition-all',
+                    category === cat.name 
+                      ? 'bg-primary/10 border-2 border-primary' 
+                      : 'bg-muted border-2 border-transparent'
+                  )}
+                >
+                  <span className="text-2xl">{cat.icon}</span>
+                  <span className="text-xs font-medium text-foreground truncate w-full text-center">{cat.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Description */}
           <Input

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3 } from 'lucide-react';
+import { Plus, Wallet, TrendingUp, TrendingDown, Loader2, BarChart3, Tag, Bell } from 'lucide-react';
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
 import { TransactionCard } from './TransactionCard';
 import { AddTransaction } from './AddTransaction';
@@ -7,6 +7,9 @@ import { AccountingCharts } from './AccountingCharts';
 import { ExportData } from './ExportData';
 import { BudgetManager } from './BudgetManager';
 import { DateFilter, DateRange } from './DateFilter';
+import { CategoryManager } from './CategoryManager';
+import { ReminderSettings } from './ReminderSettings';
+import { Button } from '@/components/ui/button';
 import { isAfter, isBefore, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
 export function AccountingTab() {
@@ -14,6 +17,8 @@ export function AccountingTab() {
   const [isAdding, setIsAdding] = useState(false);
   const [showCharts, setShowCharts] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showReminderSettings, setShowReminderSettings] = useState(false);
 
   const handleAdd = async (data: Omit<Transaction, 'id'>) => {
     await addTransaction(data);
@@ -69,12 +74,32 @@ export function AccountingTab() {
   return (
     <div className="pb-20">
       {/* 工具栏 */}
-      <div className="px-4 mb-4 flex items-center justify-between">
+      <div className="px-4 mb-4 flex items-center justify-between gap-2">
         <DateFilter 
           dateRange={dateRange} 
           onDateRangeChange={setDateRange} 
         />
-        <ExportData transactions={filteredTransactions} />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCategoryManager(true)}
+            className="gap-1"
+          >
+            <Tag className="w-4 h-4" />
+            <span className="hidden sm:inline">分类</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowReminderSettings(true)}
+            className="gap-1"
+          >
+            <Bell className="w-4 h-4" />
+            <span className="hidden sm:inline">提醒</span>
+          </Button>
+          <ExportData transactions={filteredTransactions} />
+        </div>
       </div>
 
       {/* 预算管理 */}
@@ -169,6 +194,18 @@ export function AccountingTab() {
           onClose={() => setIsAdding(false)}
         />
       )}
+
+      {/* 分类管理弹窗 */}
+      <CategoryManager 
+        isOpen={showCategoryManager} 
+        onClose={() => setShowCategoryManager(false)} 
+      />
+
+      {/* 提醒设置弹窗 */}
+      <ReminderSettings 
+        isOpen={showReminderSettings} 
+        onClose={() => setShowReminderSettings(false)} 
+      />
     </div>
   );
 }
