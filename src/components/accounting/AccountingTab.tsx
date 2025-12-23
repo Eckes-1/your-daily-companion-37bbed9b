@@ -27,7 +27,8 @@ import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 export function AccountingTab() {
   const { transactions, loading, addTransaction, updateTransaction, deleteTransaction, refetch } = useTransactions();
   const [isAdding, setIsAdding] = useState(false);
-  const [showCharts, setShowCharts] = useState(true);
+  const [showCharts, setShowCharts] = useState(false);
+  const [hasSeenChartHint, setHasSeenChartHint] = useState(() => localStorage.getItem('hasSeenChartHint') === 'true');
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showReminderSettings, setShowReminderSettings] = useState(false);
@@ -189,7 +190,28 @@ export function AccountingTab() {
             <div className="flex items-center gap-2 p-3 rounded-xl bg-expense"><TrendingDown className="w-5 h-5 text-destructive" /><div><p className="text-xs text-muted-foreground">支出</p><p className="font-semibold text-destructive">¥{totalExpense.toFixed(2)}</p></div></div>
           </div>
         </div>
-        {filteredTransactions.length > 0 && <button onClick={() => setShowCharts(!showCharts)} className="w-full mt-4 flex items-center justify-center gap-2 py-2 text-sm text-primary hover:text-primary/80 transition-colors"><BarChart3 className="w-4 h-4" />{showCharts ? '隐藏统计图表' : '显示统计图表'}</button>}
+        {filteredTransactions.length > 0 && (
+          <div className="relative mt-4">
+            <button 
+              onClick={() => {
+                setShowCharts(!showCharts);
+                if (!hasSeenChartHint) {
+                  setHasSeenChartHint(true);
+                  localStorage.setItem('hasSeenChartHint', 'true');
+                }
+              }} 
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-sm text-primary hover:text-primary/80 transition-colors bg-primary/5 rounded-lg hover:bg-primary/10"
+            >
+              <BarChart3 className="w-4 h-4" />
+              {showCharts ? '隐藏统计图表' : '查看统计图表'}
+            </button>
+            {!hasSeenChartHint && !showCharts && (
+              <div className="absolute -top-1 -right-1 flex items-center gap-1 px-2 py-0.5 bg-primary text-primary-foreground text-[10px] font-medium rounded-full animate-pulse">
+                点击查看
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {showCharts && <div className="px-4 mb-4"><TrendAnalysis transactions={filteredTransactions} /></div>}
