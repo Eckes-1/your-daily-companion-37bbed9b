@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Share2, Link, Image, Copy, Check, Download, X } from 'lucide-react';
+import { Share2, Copy, Check, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -43,21 +43,28 @@ export function ShareTransaction({ transaction, isOpen, onClose }: ShareTransact
 
   const downloadAsImage = async () => {
     if (!cardRef.current) return;
-    
+
     setGenerating(true);
     try {
-      // Use html2canvas dynamically
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(cardRef.current, {
+      const el = cardRef.current;
+
+      const canvas = await html2canvas(el, {
         backgroundColor: null,
         scale: 2,
+        useCORS: true,
+        logging: false,
+        width: el.scrollWidth,
+        height: el.scrollHeight,
+        windowWidth: el.scrollWidth,
+        windowHeight: el.scrollHeight,
       });
-      
+
       const link = document.createElement('a');
       link.download = `账单_${format(new Date(transaction.date), 'yyyyMMdd')}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-      
+
       toast({ title: '图片已保存' });
     } catch (error) {
       console.error('Error generating image:', error);
@@ -75,12 +82,13 @@ export function ShareTransaction({ transaction, isOpen, onClose }: ShareTransact
           text: shareText,
         });
       } catch (error) {
+        // 用户取消不提示；其他情况直接降级为复制，避免“分享失败”干扰
         if ((error as Error).name !== 'AbortError') {
-          toast({ title: '分享失败', variant: 'destructive' });
+          await copyToClipboard();
         }
       }
     } else {
-      copyToClipboard();
+      await copyToClipboard();
     }
   };
 
@@ -94,52 +102,61 @@ export function ShareTransaction({ transaction, isOpen, onClose }: ShareTransact
           </DialogTitle>
         </DialogHeader>
 
-        {/* 预览卡片 */}
-        <div 
+        {/* 预览卡片（用于导出图片） */}
+        <div
           ref={cardRef}
-          className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/30 border border-border"
+          className="mx-auto w-[360px] max-w-full rounded-2xl border border-border/60 bg-card p-4 shadow-sm overflow-hidden"
         >
-          <div className="flex items-center gap-2 mb-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              transaction.type === 'income' 
-                ? 'bg-accent/20 text-accent' 
-                : 'bg-destructive/20 text-destructive'
-            }`}>
-              {transaction.type === 'income' ? '💰' : '💸'}
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {transaction.type === 'income' ? '收入' : '支出'}
-              </p>
-              <p className={`text-xl font-bold ${
-                transaction.type === 'income' ? 'text-accent' : 'text-destructive'
-              }`}>
-                ¥{transaction.amount.toFixed(2)}
-              </p>
-            </div>
-          </div>
-          
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">分类</span>
-              <span className="font-medium">{transaction.category}</span>
-            </div>
-            {transaction.description && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">备注</span>
-                <span className="font-medium truncate max-w-[150px]">{transaction.description}</span>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">日期</span>
-              <span className="font-medium">
-                {format(new Date(transaction.date), 'yyyy/MM/dd', { locale: zhCN })}
-              </span>
-            </div>
-          </div>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
 
-          <div className="mt-3 pt-3 border-t border-border/50 text-center">
-            <p className="text-xs text-muted-foreground">来自「记账本」</p>
+            <div className="relative flex items-center gap-3">
+              <div
+                className={
+                  `w-11 h-11 rounded-2xl flex items-center justify-center border border-border/50 ` +
+                  (transaction.type === 'income'
+                    ? 'bg-income text-accent'
+                    : 'bg-expense text-destructive')
+                }
+              >
+                <span className="text-lg" aria-hidden>
+                  {transaction.type === 'income' ? '💰' : '💸'}
+                </span>
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-muted-foreground">
+                  {transaction.type === 'income' ? '收入' : '支出'}
+                </p>
+                <p
+                  className={
+                    `text-2xl font-bold leading-tight ` +
+                    (transaction.type === 'income' ? 'text-accent' : 'text-destructive')
+                  }
+                >
+                  ¥{transaction.amount.toFixed(2)}
+                </p>
+              </div>
+            </div>
+
+            <div className="relative mt-4 rounded-xl border border-border/50 bg-background/40 p-3">
+              <div className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-2 text-sm">
+                <span className="text-muted-foreground">分类</span>
+                <span className="font-medium text-right">{transaction.category}</span>
+
+                <span className="text-muted-foreground">备注</span>
+                <span className="font-medium text-right break-words">{transaction.description || '—'}</span>
+
+                <span className="text-muted-foreground">日期</span>
+                <span className="font-medium text-right">
+                  {format(new Date(transaction.date), 'yyyy/MM/dd', { locale: zhCN })}
+                </span>
+              </div>
+            </div>
+
+            <div className="relative mt-4 pt-3 border-t border-border/50 text-center">
+              <p className="text-xs text-muted-foreground">来自「记账本」</p>
+            </div>
           </div>
         </div>
 
@@ -153,7 +170,7 @@ export function ShareTransaction({ transaction, isOpen, onClose }: ShareTransact
             {copied ? <Check className="w-5 h-5 text-accent" /> : <Copy className="w-5 h-5" />}
             <span className="text-xs">复制文字</span>
           </Button>
-          
+
           <Button
             variant="outline"
             className="flex flex-col items-center gap-1 h-auto py-3"
@@ -163,9 +180,9 @@ export function ShareTransaction({ transaction, isOpen, onClose }: ShareTransact
             <Download className="w-5 h-5" />
             <span className="text-xs">{generating ? '生成中...' : '保存图片'}</span>
           </Button>
-          
+
           <Button
-            variant="outline"
+            variant="default"
             className="flex flex-col items-center gap-1 h-auto py-3"
             onClick={shareNative}
           >
