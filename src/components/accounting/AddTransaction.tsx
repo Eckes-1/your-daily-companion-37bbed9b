@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useCategories } from '@/hooks/useCategories';
+import { ReceiptScanner } from './ReceiptScanner';
 
 interface TransactionData {
   type: 'income' | 'expense';
@@ -44,6 +45,18 @@ export function AddTransaction({ onAdd, onClose }: AddTransactionProps) {
     }
   };
 
+  const handleScanComplete = (result: { amount: number; type: 'income' | 'expense'; category: string; description: string }) => {
+    setAmount(result.amount.toString());
+    setType(result.type);
+    setCategory(result.category);
+    setDescription(result.description);
+  };
+
+  const getCategoryNames = () => ({
+    expense: expenseCategories.map(c => c.name),
+    income: incomeCategories.map(c => c.name)
+  });
+
   const handleSubmit = () => {
     if (!amount || parseFloat(amount) <= 0) return;
     
@@ -74,6 +87,9 @@ export function AddTransaction({ onAdd, onClose }: AddTransactionProps) {
         </div>
 
         <div className="p-4 space-y-6">
+          {/* Receipt Scanner */}
+          <ReceiptScanner onScanComplete={handleScanComplete} categories={getCategoryNames()} />
+          
           {/* Type Toggle */}
           <div className="flex gap-2 p-1 bg-muted rounded-xl">
             <button
